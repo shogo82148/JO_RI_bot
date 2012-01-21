@@ -34,6 +34,8 @@ def Bigram(itr):
         
 
 class DBManager(object):
+    BOS = '\tBOS/EOS,*,*,*,*,*,*,*,*'
+    EOS = '\tBOS/EOS,*,*,*,*,*,*,*,*'
     bigram_columns = ['count', 'following']
 
     def __init__(self):
@@ -74,7 +76,16 @@ class DBManager(object):
                 (dbbigram[0]+count, )+bigram)
         self.db.commit()
 
+    def next_word(self, word, column='count'):
+        """ wordの次に出現する単語を探す """
+        if column not in self.bigram_columns:
+            return
+        return self.db.execute(
+            'select word2,%s from bigram where word1=?' % column, (word, ))
+
 if __name__=="__main__":
     db = DBManager()
     db.add_text(u"こんにちは世界")
     db.add_text(u"こんにちはプログラム", column = 'following')
+    for word, count in db.next_word(db.BOS):
+        print word, count
