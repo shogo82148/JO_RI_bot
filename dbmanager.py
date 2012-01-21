@@ -4,6 +4,7 @@
 import MeCab
 import config
 import sqlite3
+import re
 
 class Parse:
     def __init__(self, s, tagger=None):
@@ -48,7 +49,25 @@ class DBManager(object):
                                    for column in self.bigram_columns) +
                         ");")
         self.db.commit()
-        
+
+    _re_mention = re.compile(r'@\w+')
+    _re_url = re.compile(r'(http)://[_\.a-zA-Z0-9\?&=\-%/#!]*')
+    _re_hash_tag = re.compile(ur'#[\w\u3041-\u3094\u30a1-\u30fa\u30fc'
+                   ur'\u4e00-\u9fff\uf900-\ufaff]+')
+    _re_retweet = re.compile(r'(RT|QT) @\w+:.*$')
+    _re_space = re.compile(r'\s+')
+    _re_dot = re.compile(r'^\.\s*')
+    def extract_text(self, text):
+        """URLやメンションなどを削除する"""
+        text = self._re_url.sub('', text)
+        text = self._re_hash_tag.sub('', text)
+        text = self._re_retweet.sub('', text)
+        text = self._re_mention.sub('', text)
+        text = self._re_dot.sub('', text)
+        text = self._re_space.sub(' ', text)
+        text = text.strip()
+        return text
+
     def add_text(self, text, column='count'):
         """ テキストをデータベースに登録する """
 
