@@ -61,7 +61,6 @@ class DBManager(object):
             bigrams[bigram] = bigrams.get(bigram, 0) + 1
 
         for bigram, count in bigrams.iteritems():
-            print bigram[0], '\t', bigram[1], '\t', count
             dbbigram = self.db.execute(
                 'select %s from bigram where word1=? and word2=?' % column, bigram).fetchone()
             if not dbbigram:
@@ -74,10 +73,6 @@ class DBManager(object):
                 'update bigram set %s=? where word1=? and word2=?' % column,
                 (dbbigram[0]+count, )+bigram)
         self.db.commit()
-
-        print '***'
-        for i in self.db.execute('select * from bigram'):
-            print i[0], i[1], i[2], i[3]
 
 if __name__=="__main__":
     db = DBManager()
