@@ -3,6 +3,8 @@
 
 #初回実行時の設定
 def first_run():
+    import tweepy
+
     #Twitter 認証
     CONSUMER_KEY = raw_input('Consumer Key?:')
     CONSUMER_SECRET = raw_input('Consumer Secret?:')
@@ -48,7 +50,7 @@ from crondaemon import crondaemon
 from dbmanager import DBManager
 from generator import MarkovGenerator
 
-class Bot(tweepywrap.StreamListener):
+class BotStream(tweepywrap.StreamListener):
     def __init__(self):
         self._mecab = MeCab.Tagger()
     
@@ -58,33 +60,12 @@ class Bot(tweepywrap.StreamListener):
         auth.set_access_token(config.ACCESS_KEY, config.ACCESS_SECRET)
         self.api = tweepy.API(auth)
 
-        #定期ポストの設定
-        cron = crondaemon()
-        cron.add('* * * * *', self.post)
-        cron.add('0 * * * *', self.crawl)
-        cron.start()
-
     	#ストリームの開始
         stream = tweepy.Stream(auth, self)
-        stream.userstream(async=True)
-        while True:
-            time.sleep(1000)
-
-    def post(self):
-        print '...'
-        generator = MarkovGenerator(DBManager())
-        status = generator.get_text()
-        if len(status)>140:
-            status = status[0:140]
-        print "Tweet:", status
-        self.api.update_status(status)
-        return
-
-    def crawl(self):
-        print "Crawl!"
-        return
+        stream.userstream(async=False)
 
     def on_status(self, status):
+        print status.text
         return
 
     def on_delete(self, status_id, user_id):
@@ -109,4 +90,4 @@ class Bot(tweepywrap.StreamListener):
         return
 
 if __name__=="__main__":
-    Bot().start()
+    BotStream().start()
