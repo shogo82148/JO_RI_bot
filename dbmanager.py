@@ -36,8 +36,8 @@ def Bigram(itr):
         
 
 class DBManager(object):
-    BOS = '\tBOS/EOS,*,*,*,*,*,*,*,*'
-    EOS = '\tBOS/EOS,*,*,*,*,*,*,*,*'
+    BOS = '\tBOS/EOS,*,*'
+    EOS = '\tBOS/EOS,*,*'
     bigram_columns = ['count', 'following']
 
     def __init__(self, mecab=None):
@@ -69,6 +69,11 @@ class DBManager(object):
         text = text.strip()
         return text
 
+    def node2word(self, node):
+        features = node.feature.split(',')[0:3]
+        text = "%s\t%s,%s,%s" % tuple([node.surface]+features)
+        return text.decode('utf-8')
+
     def add_text(self, text, column='count'):
         """ テキストをデータベースに登録する """
 
@@ -77,7 +82,7 @@ class DBManager(object):
 
         bigrams = {}
         nodes = Parse(text, self._mecab)
-        g = (("%s\t%s" % (n.surface, n.feature)).decode('utf-8') for n in nodes)
+        g = (self.node2word(n) for n in nodes)
 
         for bigram in Bigram(g):
             bigrams[bigram] = bigrams.get(bigram, 0) + 1
