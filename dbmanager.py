@@ -5,6 +5,7 @@ import MeCab
 import config
 import sqlite3
 import re
+import sys
 
 class Parse:
     def __init__(self, s, tagger=None):
@@ -104,7 +105,7 @@ class DBManager(object):
 
 if __name__=="__main__":
     db = DBManager()
-    db.add_text(u"こんにちは世界")
-    db.add_text(u"こんにちはプログラム", column = 'following')
-    for word, count in db.next_word(db.BOS):
-        print word, count
+    query = " ".join(sys.argv[1:])
+    print query
+    for res in db.db.execute(query):
+        print '\t'.join(unicode(i) for i in res)

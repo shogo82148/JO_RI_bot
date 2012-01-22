@@ -8,11 +8,15 @@ from tweepy import Status
 
 class StreamListener(tweepy.StreamListener):
     """ tweepyのStreamListenerのラッパ """
+    def __init__(self):
+        self.api = tweepy.API()
+
     def on_data(self, data):
         if not data:
             return
         json_data = json.loads(data)
-            
+        api = self.api
+
         if 'event' in json_data:
             if json_data['event']=='follow':
                 target = User.parse(api, json_data["target"])

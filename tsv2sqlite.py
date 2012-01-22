@@ -14,6 +14,7 @@ def main():
         status = line.split('\t')
         text = db.extract_text(status[0])
         if text:
+            db.add_text(text)
             print text, '\t', status[1],
         sys.stdout.flush()
     return
