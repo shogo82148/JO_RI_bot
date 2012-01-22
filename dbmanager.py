@@ -40,8 +40,8 @@ class DBManager(object):
     EOS = '\tBOS/EOS,*,*,*,*,*,*,*,*'
     bigram_columns = ['count', 'following']
 
-    def __init__(self):
-        self._mecab = MeCab.Tagger()
+    def __init__(self, mecab=None):
+        self._mecab = mecab or MeCab.Tagger()
 
         self.db = sqlite3.connect("db.sqlite3")
         self.db.execute("create table if not exists bigram (word1 varchar(20),"
@@ -87,9 +87,8 @@ class DBManager(object):
                 'select %s from bigram where word1=? and word2=?' % column, bigram).fetchone()
             if not dbbigram:
                 self.db.execute(
-                    'insert into bigram default values')
-                self.db.execute(
-                    'update bigram set word1=?, word2=? where word1 isnull and word2 isnull', bigram)
+                    'insert into bigram values (?,?,%s)'
+                    % ','.join(('0',)*len(self.bigram_columns)), bigram)
                 dbbigram = (0,)
             self.db.execute(
                 'update bigram set %s=? where word1=? and word2=?' % column,

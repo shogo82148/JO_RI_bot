@@ -7,9 +7,8 @@ import datetime
 import time
 from croniter import croniter
 
-class crondaemon(Thread):
+class crondaemon:
     def __init__(self):
-        Thread.__init__(self)
         self.running = True
         self._crons = []
         self._lock = Lock()
@@ -20,7 +19,7 @@ class crondaemon(Thread):
         self._crons.append([it.get_next(), it, func, args, kargs])
         self._lock.release()
 
-    def run(self):
+    def _run(self):
         while self.running:
             self._lock.acquire()
             cron = min(self._crons, key=lambda x: x[0])
@@ -33,6 +32,13 @@ class crondaemon(Thread):
             cron[0] = cron[1].get_next()
             cron[2](*cron[3], **cron[4])
 
+    def start(self, async=False):
+        self.running = True
+        if async:
+            Thread(target=self._run).start()
+        else:
+            self._run()
+
     def stop(self):
         self.running = False
 
@@ -41,7 +47,6 @@ def main():
         print name, datetime.datetime.now()
         
     cron = crondaemon()
-    cron.setDaemon(True)
     cron.add('* * * * *', func, ("per minuite",))
     cron.add('*/5 * * * *', func, ("per five minutes",))
     cron.add('0-30 * * * *', func, ("0-30 minutes",))

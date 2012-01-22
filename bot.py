@@ -49,20 +49,39 @@ import signal
 from crondaemon import crondaemon
 from dbmanager import DBManager
 from generator import MarkovGenerator
+from multiprocessing import Process
 
 class BotStream(tweepywrap.StreamListener):
     def __init__(self):
-        self._mecab = MeCab.Tagger()
-    
-    def start(self):
-        #データベースの作成
-        auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
-        auth.set_access_token(config.ACCESS_KEY, config.ACCESS_SECRET)
-        self.api = tweepy.API(auth)
+        super(BotStream, self).__init__()
 
-    	#ストリームの開始
-        stream = tweepy.Stream(auth, self)
+        self._mecab = MeCab.Tagger()
+
+        #APIの作成
+        self._auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
+        self._auth.set_access_token(config.ACCESS_KEY, config.ACCESS_SECRET)
+        self._api = tweepy.API(self._auth)
+
+        #データベースとの接続
+        self._db = DBManager(self._mecab)
+
+        #文章生成器の作成
+        self._generator = MarkovGenerator(self._db)
+    
+    def start_stream(self):
+        """ユーザストリームを開始する"""
+        stream = tweepy.Stream(self._auth, self)
         stream.userstream(async=False)
+
+    def start_cron(self):
+        """定期実行タスクを開始する"""
+        cron = crondaemon()
+        cron.add('* * * * *', self.post)
+        cron.start(async=False)
+
+    def post(self):
+        self._api.update_status(self._generator.get_text())
+        return
 
     def on_status(self, status):
         print status.text
@@ -89,5 +108,14 @@ class BotStream(tweepywrap.StreamListener):
     def on_timeout(self):
         return
 
+def StreamingProcess():
+    BotStream().start_stream()
+
+def CronDaemon():
+    BotStream().start_cron()
+
 if __name__=="__main__":
-    BotStream().start()
+    streaming_process = Process(target=StreamingProcess)
+    streaming_process.start()
+    cron_process = Process(target=CronDaemon)
+    cron_process.start()
