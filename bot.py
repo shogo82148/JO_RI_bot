@@ -1,10 +1,46 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
+#初回実行時の設定
+def first_run():
+    #Twitter 認証
+    CONSUMER_KEY = raw_input('Consumer Key?:')
+    CONSUMER_SECRET = raw_input('Consumer Secret?:')
+    auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+
+    print 'Please acess this URL:', auth.get_authorization_url()
+    pin = raw_input('Your PIN?:')
+    
+    token = auth.get_access_token(verifier=pin)
+    print 'Your Access token is:'
+    print '  Key: %s' % token.key
+    print '  Secret: %s' % token.secret
+
+    #クロール設定
+    CRAWL_USER = raw_input('Crawling User?:')
+    
+    #configファイルの作成
+    with open('config.py', 'w') as conf:
+        conf.write('#!/usr/bin/env python\n')
+        conf.write('# -*- coding:utf-8 -*-\n')
+        conf.write('CONSUMER_KEY = "%s"\n' % CONSUMER_KEY)
+        conf.write('CONSUMER_SECRET = "%s"\n' % CONSUMER_SECRET)
+        conf.write('ACCESS_KEY = "%s"\n' % token.key)
+        conf.write('ACCESS_SECRET = "%s"\n' % token.secret)
+        conf.write('\n')
+        conf.write('CRAWL_USER = "%s"\n' % CRAWL_USER)
+
+#設定ファイルの読み込み
+try:
+    import config
+except ImportError:
+    #初回実行
+    first_run()
+    import config
+
 import tweepywrap
 import tweepy
 import MeCab
-import config
 import sqlite3
 import time
 import signal
