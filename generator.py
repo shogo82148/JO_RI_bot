@@ -25,7 +25,7 @@ class MarkovGenerator(object):
             if next_word==db.EOS:
                 break
             text += next_word.split('\t')[0]
-            print next_word
+            #print next_word
             word = next_word
         return text
 

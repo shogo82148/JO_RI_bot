@@ -46,6 +46,7 @@ import MeCab
 import sqlite3
 import time
 import signal
+import re
 from crondaemon import crondaemon
 from dbmanager import DBManager
 from generator import MarkovGenerator
@@ -62,12 +63,16 @@ class BotStream(tweepywrap.StreamListener):
         self._auth.set_access_token(config.ACCESS_KEY, config.ACCESS_SECRET)
         self._api = tweepy.API(self._auth)
 
+        #アカウント設定の読み込み
+        self._name = self._api.me().screen_name
+        self._re_reply_to_me = re.compile(r'^@%s' % self._name, re.IGNORECASE)
+
         #データベースとの接続
         self._db = DBManager(self._mecab)
 
         #文章生成器の作成
         self._generator = MarkovGenerator(self._db)
-    
+
     def start_stream(self):
         """ユーザストリームを開始する"""
         stream = tweepy.Stream(self._auth, self)
@@ -80,11 +85,25 @@ class BotStream(tweepywrap.StreamListener):
         cron.start(async=False)
 
     def post(self):
+        """定期ポスト"""
         self._api.update_status(self._generator.get_text())
         return
 
+    def reply_to(self, status, text):
+        text = '@%s %s' % (
+            status.author.screen_name,
+            text)
+        if len(text)>140:
+            text = text[0:140]
+        self._api.update_status(text, in_reply_to_status_id=status.id)
+
     def on_status(self, status):
-        print status.text
+        if self._re_reply_to_me.search(status.text):
+            #Reply to me
+            self.reply_to(status, self._generator.get_text())
+        else:
+            #Normal Tweets
+            pass
         return
 
     def on_delete(self, status_id, user_id):
