@@ -43,9 +43,18 @@ class DBManager(object):
     def __init__(self, mecab=None, dbfile='bigram.db'):
         self._mecab = mecab or MeCab.Tagger()
         self.db = anydbm.open(dbfile, 'c')
+        self._closed = False
 
-    def __del__(self):
-        self.db.close()
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        self.close()
+
+    def close(self):
+        if not self._closed:
+            self.db.close()
+            self._closed = True
 
     _re_mention = re.compile(r'@\w+')
     _re_url = re.compile(r'(http)://[_\.a-zA-Z0-9\?&=\-%/#!]*')

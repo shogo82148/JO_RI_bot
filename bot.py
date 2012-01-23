@@ -58,6 +58,10 @@ from crondaemon import crondaemon
 from dbmanager import DBManager
 from generator import MarkovGenerator
 from multiprocessing import Process, Lock
+import random
+
+class BotShutdown(Exception):
+    pass
 
 class BotStream(tweepywrap.StreamListener):
     def __init__(self, lock):
@@ -65,6 +69,9 @@ class BotStream(tweepywrap.StreamListener):
 
         self._lock = lock
         self._mecab = MeCab.Tagger()
+        self.stream = None
+        self.cron = None
+        self.log('ボット起動なう')
 
         #APIの作成
         self._auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
@@ -87,29 +94,45 @@ class BotStream(tweepywrap.StreamListener):
 
         #リプライをもらった時のフック
         self.reply_hooks = [
+            BotStream.shutdown_hook,
             BotStream.delete_hook,
             BotStream.reply_hook,
             ]
+    
+    def __enter__(self):
+        return self
 
-    def start_stream(self):
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        self.close()
+        if self.stream:
+            self.stream.disconnect()
+        if self.cron:
+            self.cron.stop()
+
+    def close(self):
+        self._db.close()
+
+    def start_stream(self, async=False):
         """ユーザストリームを開始する"""
         self.log('ユーザストリーム開始')
         stream = tweepy.Stream(self._auth, self)
+        self.stream = stream
         try:
-            stream.userstream(async=False)
+            stream.userstream(async=async)
         except tweepy.error.TweepError, e:
             self.log('エラー！', e)
 
-    def start_cron(self):
+    def start_cron(self, async=False):
         """定期実行タスクを開始する"""
         self.log('cronデーモン開始')
         self.crawl()
         cron = crondaemon()
+        self.cron = cron
         cron.add('*/20 * * * *', self.post)
         cron.add('30 * * * *', self.crawl)
         cron.add('10 */2 * * *', self.reply_to_bot, args=('@NPoi_bot',))
         cron.add('50 */2 * * *', self.reply_to_bot, args=('@FUCOROID',))
-        cron.start(async=False)
+        cron.start(async=async)
 
     def post(self, text=None):
         """定期ポスト"""
@@ -149,9 +172,27 @@ class BotStream(tweepywrap.StreamListener):
                 text = db.extract_text(status.text)
                 self.log('クロール:', text, status.id)
                 db.add_text(text)
-                db.since_id = status.id
-        except tweepy.error.TweepError, e:
-            self.log("エラー！", e)
+                db.since_id = max(db.since_id, status.id)
+        except Exception, e:
+            self.log('エラー！', e)
+
+    def shutdown_hook(self, status):
+        """ボットのシャットダウン"""
+        if status.text.find(u'バルス')<0:
+            return False
+        if status.author.screen_name.lower() in self.admin_user:
+            #削除実行
+            try:
+                self.reply_to(status, random.choice([
+                            u'目がぁぁぁ、目がぁぁぁぁ[%s]',
+                            u'ボットは滅びぬ、何度でも蘇るさ[%s]',
+                            u'シャットダウンなう[%s]',
+                            ]) % str(datetime.datetime.now()))
+            except Exception, e:
+                self.log("エラー", e)
+            raise BotShutdown
+            return True
+        return False
 
     def delete_hook(self, status):
         """削除命令"""
@@ -162,11 +203,11 @@ class BotStream(tweepywrap.StreamListener):
             if status.in_reply_to_status_id:
                 try:
                     res = self._api.destroy_status(status.in_reply_to_status_id)
-                    self.log("削除成功:", status.in_reply_to_status_id)
+                    self.log(u"削除成功:", status.in_reply_to_status_id)
                 except:
-                    self.log("削除失敗:", status.in_reply_to_status_id)
+                    self.log(u"削除失敗:", status.in_reply_to_status_id)
             else:
-                self.reply_to(status, 'in_reply_to入ってないよ！')
+                self.reply_to(status, u'in_reply_to入ってないよ！')
             return True
         return False
 
@@ -188,35 +229,39 @@ class BotStream(tweepywrap.StreamListener):
             self.log("エラー！", e)
 
     def log(self, *args):
-        self._lock.acquire()
-        print datetime.datetime.now(),
-        for msg in args:
-            if isinstance(msg, str):
-                print msg.decode('utf-8'),
-            elif isinstance(msg, unicode):
-                print msg,
-            else:
-                print str(msg).decode('utf-8'),
-        print
-        sys.stdout.flush()
-        self._lock.release()
+        with self._lock:
+            print datetime.datetime.now(),
+            for msg in args:
+                if isinstance(msg, str):
+                    print msg.decode('utf-8'),
+                elif isinstance(msg, unicode):
+                    print msg,
+                else:
+                    print str(msg).decode('utf-8'),
+            print
+            sys.stdout.flush()
 
     def on_status(self, status):
-        if self._re_reply_to_me.search(status.text):
-            #自分へのリプライ
+        try:
+            if self._re_reply_to_me.search(status.text):
+                #自分へのリプライ
 
-            #ボットさんから話しかけられた場合は無視
-            if status.author.screen_name.lower() in self.ignore_user:
-                return
-
-            for func in self.reply_hooks:
-                ret = func(self, status)
-                if ret:
-                    break
-        else:
-            #普通のツイート
-            pass
-        return
+                #ボットさんから話しかけられた場合は無視
+                if status.author.screen_name.lower() in self.ignore_user:
+                    return
+                
+                for func in self.reply_hooks:
+                    ret = func(self, status)
+                    if ret:
+                        break
+            else:
+                #普通のツイート
+                pass
+        except tweepy.error.TweepError, e:
+            self.log("エラー！", e)
+        except BotShutdown, e:
+            self.log('シャットダウンなう')
+            return False
 
     def on_delete(self, status_id, user_id):
         return
@@ -240,18 +285,23 @@ class BotStream(tweepywrap.StreamListener):
         return
 
 def StreamingProcess(lock):
-    BotStream(lock).start_stream()
+    with BotStream(lock) as bot:
+        bot.start_stream()
 
-def CronDaemon(lock):
-    BotStream(lock).start_cron()
+def main():
+    #ストリーミングを開始
+    lock = Lock()
+    streaming_process = Process(target=StreamingProcess, args=(lock,))
+    streaming_process.start()
 
+    #定期ポストを開始
+    with BotStream(lock) as bot:
+        bot.start_cron(async=True)
+        streaming_process.join()
 
 sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
 
 if __name__=="__main__":
-    lock = Lock()
-    streaming_process = Process(target=StreamingProcess, args=(lock,))
-    streaming_process.start()
-    cron_process = Process(target=CronDaemon, args=(lock,))
-    cron_process.start()
+    main()
+
