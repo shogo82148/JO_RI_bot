@@ -91,11 +91,13 @@ class BotStream(tweepywrap.StreamListener):
         #ユーザリストの作成
         self.ignore_user = [name.lower() for name in config.IGNORE_USER]
         self.admin_user = [name.lower() for name in config.ADMIN_USER]
+        self.reply_history = {}
 
         #リプライをもらった時のフック
         self.reply_hooks = [
             BotStream.shutdown_hook,
             BotStream.delete_hook,
+            BotStream.history_hook,
             BotStream.reply_hook,
             ]
     
@@ -130,9 +132,14 @@ class BotStream(tweepywrap.StreamListener):
         self.cron = cron
         cron.add('*/20 * * * *', self.post)
         cron.add('30 * * * *', self.crawl)
-        cron.add('10 */2 * * *', self.reply_to_bot, args=('@NPoi_bot',))
-        cron.add('50 */2 * * *', self.reply_to_bot, args=('@FUCOROID',))
+        cron.add('10 8,10,12,14,16,18,20,22 * * *', self.reply_to_bot, args=('@NPoi_bot',))
+        cron.add('49 9,11,13,15,17,19,21,23 * * *', self.reply_to_bot, args=('@FUCOROID',))
+        cron.add('55 9,11,13,15,17,19,21,23 * * *', self.reply_to_bot, args=('@KSLaBot',))
         cron.start(async=async)
+        self.post(random.choice([
+                            u'【お知らせ】颯爽登場、銀河美少年！ 綺羅星☆[%s]',
+                            u'【お知らせ】起動なう[%s]',
+                            ]) % str(datetime.datetime.now()))
 
     def post(self, text=None):
         """定期ポスト"""
@@ -170,9 +177,10 @@ class BotStream(tweepywrap.StreamListener):
             statuses = tweepy.Cursor(api.user_timeline, **arg).items(3200)
             for status in statuses:
                 text = db.extract_text(status.text)
-                self.log('クロール:', text, status.id)
+                self.log('クロール:', status.id, text)
                 db.add_text(text)
-                db.since_id = max(db.since_id, status.id)
+                db.since_id = str( max(int(db.since_id), int(status.id)) )
+                #self.log(db.since_id)
         except Exception, e:
             self.log('エラー！', e)
 
@@ -183,10 +191,10 @@ class BotStream(tweepywrap.StreamListener):
         if status.author.screen_name.lower() in self.admin_user:
             #削除実行
             try:
-                self.reply_to(status, random.choice([
-                            u'目がぁぁぁ、目がぁぁぁぁ[%s]',
-                            u'ボットは滅びぬ、何度でも蘇るさ[%s]',
-                            u'シャットダウンなう[%s]',
+                self.post(random.choice([
+                            u'【お知らせ】目がぁぁぁ、目がぁぁぁぁ[%s]',
+                            u'【お知らせ】ボットは滅びぬ、何度でも蘇るさ[%s]',
+                            u'【お知らせ】シャットダウンなう[%s]',
                             ]) % str(datetime.datetime.now()))
             except Exception, e:
                 self.log("エラー", e)
@@ -210,6 +218,33 @@ class BotStream(tweepywrap.StreamListener):
                 self.reply_to(status, u'in_reply_to入ってないよ！[%s]' % str(datetime.datetime.now()))
             return True
         return False
+
+    def history_hook(self, status):
+        """リプライやり取りの履歴管理"""
+        author = status.author.screen_name.lower()
+        history = self.reply_history
+        now = time.time()
+
+        #履歴更新
+        if author in history:
+            if history[author]['count']==config.REPLY_LIMIT:
+                self.reply_to(status,
+                              u'今、ちょっと取り込んでまして・・・'
+                              u'またのご利用をお待ちしております！[%s]' % str(datetime.datetime.now()))
+            history[author]['count'] += 1
+            if history[author]['count']>config.REPLY_LIMIT:
+                self.log(u'@%sさん規制なう' % status.author.screen_name)
+                return True
+        else:
+            history[author] = {
+                'time': now,
+                'count': 1,
+                }
+
+        #古い履歴は削除
+        for name in history.keys():
+            if now-history[name]['time']>config.RESET_CYCLE:
+                del history[name]
 
     def reply_hook(self, status):
         """リプライ返し"""
@@ -267,6 +302,7 @@ class BotStream(tweepywrap.StreamListener):
         return
 
     def on_limit(self, track):
+        self.log('規制入りました:', track)
         return
     
     def on_follow(self, target, source):
@@ -279,9 +315,11 @@ class BotStream(tweepywrap.StreamListener):
         return
     
     def on_error(self, status_code):
+        self.log('Streamエラー:', status_code)
         return
         
     def on_timeout(self):
+        self.log('タイムアウト')
         return
 
 def StreamingProcess(lock):
