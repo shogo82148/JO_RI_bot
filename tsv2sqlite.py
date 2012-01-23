@@ -17,6 +17,8 @@ def main():
         if text:
             db.add_text(text)
             print text, '\t', status[1]
+        if len(status)>=3:
+            db.since_id = status[2]
         sys.stdout.flush()
     return
 

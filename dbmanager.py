@@ -104,6 +104,18 @@ class DBManager(object):
                     continue
                 yield (w.decode('utf-8'), int(db[key]))
 
+    def _get_since_id(self):
+        if 'since_id' in self.db:
+            return self.db['since_id']
+        else:
+            return ''
+
+    def _set_since_id(self, since_id):
+        self.db['since_id'] = str(since_id)
+
+    since_id = property(_get_since_id, _set_since_id)
+
+
 if __name__=="__main__":
     db = DBManager()
     query = " ".join(sys.argv[1:])

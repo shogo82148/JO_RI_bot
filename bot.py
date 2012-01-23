@@ -47,15 +47,18 @@ import sqlite3
 import time
 import signal
 import re
+import codecs
+import sys
 from crondaemon import crondaemon
 from dbmanager import DBManager
 from generator import MarkovGenerator
-from multiprocessing import Process
+from multiprocessing import Process, Lock
 
 class BotStream(tweepywrap.StreamListener):
-    def __init__(self):
+    def __init__(self, lock):
         super(BotStream, self).__init__()
 
+        self._lock = lock
         self._mecab = MeCab.Tagger()
 
         #APIの作成
@@ -81,13 +84,35 @@ class BotStream(tweepywrap.StreamListener):
     def start_cron(self):
         """定期実行タスクを開始する"""
         cron = crondaemon()
-        cron.add('* * * * *', self.post)
+        cron.add('*/20 * * * *', self.post)
+        cron.add('30 * * * *', self.crawl)
         cron.start(async=False)
 
     def post(self):
         """定期ポスト"""
-        self._api.update_status(self._generator.get_text())
+        text = self._generator.get_text()
+        self.log('てーきポスト:', text)
+        self._api.update_status(text)
         return
+
+    def crawl(self):
+        """オリジナルユーザの発言をクロール"""
+        db = self._db
+        api = self._api
+        arg = {}
+        arg['id'] = config.CRAWL_USER
+        self.log('クロールなう')
+        if self._db.since_id:
+            arg['since_id'] = db.since_id
+        try:
+            statuses = tweepy.Cursor(api.user_timeline, **arg).items(3200)
+            for status in statuses:
+                text = db.extract_text(status.text)
+                self.log('クロール:', text, status.id)
+                db.add_text(text)
+                db.since_id = status.id
+        except tweepy.error.TweepError, e:
+            print e
 
     def reply_to(self, status, text):
         text = '@%s %s' % (
@@ -95,11 +120,27 @@ class BotStream(tweepywrap.StreamListener):
             text)
         if len(text)>140:
             text = text[0:140]
+        self.log('リプライ:', text)
         self._api.update_status(text, in_reply_to_status_id=status.id)
+
+    def log(self, *args):
+        self._lock.acquire()
+        for msg in args:
+            if isinstance(msg, str):
+                print msg.decode('utf-8'),
+            elif isinstance(msg, unicode):
+                print msg,
+            else:
+                print str(msg).decode('utf-8'),
+        print
+        sys.stdout.flush()
+        self._lock.release()
 
     def on_status(self, status):
         if self._re_reply_to_me.search(status.text):
             #Reply to me
+            if status.author.screen_name=='NPoi_bot':
+                return
             self.reply_to(status, self._generator.get_text())
         else:
             #Normal Tweets
@@ -127,14 +168,19 @@ class BotStream(tweepywrap.StreamListener):
     def on_timeout(self):
         return
 
-def StreamingProcess():
-    BotStream().start_stream()
+def StreamingProcess(lock):
+    BotStream(lock).start_stream()
 
-def CronDaemon():
-    BotStream().start_cron()
+def CronDaemon(lock):
+    BotStream(lock).start_cron()
+
+
+sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
+sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
 
 if __name__=="__main__":
-    streaming_process = Process(target=StreamingProcess)
+    lock = Lock()
+    streaming_process = Process(target=StreamingProcess, args=(lock,))
     streaming_process.start()
-    cron_process = Process(target=CronDaemon)
+    cron_process = Process(target=CronDaemon, args=(lock,))
     cron_process.start()
