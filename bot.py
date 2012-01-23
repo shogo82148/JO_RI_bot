@@ -207,7 +207,7 @@ class BotStream(tweepywrap.StreamListener):
                 except:
                     self.log(u"削除失敗:", status.in_reply_to_status_id)
             else:
-                self.reply_to(status, u'in_reply_to入ってないよ！')
+                self.reply_to(status, u'in_reply_to入ってないよ！[%s]' % str(datetime.datetime.now()))
             return True
         return False
 
