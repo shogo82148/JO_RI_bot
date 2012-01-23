@@ -56,7 +56,8 @@ class DBManager(object):
     _re_dot = re.compile(r'^\.\s*')
     def extract_text(self, text):
         """URLやメンションなどを削除する"""
-        text = self._re_url.sub('', text)
+        if self._re_url.search(text):
+            return ''
         text = self._re_hash_tag.sub('', text)
         text = self._re_retweet.sub('', text)
         text = self._re_mention.sub('', text)
