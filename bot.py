@@ -59,6 +59,7 @@ from dbmanager import DBManager
 from generator import MarkovGenerator
 from multiprocessing import Process, Lock
 import random
+import gakushoku 
 
 class BotShutdown(Exception):
     pass
@@ -77,6 +78,7 @@ class BotStream(tweepywrap.StreamListener):
         self._auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
         self._auth.set_access_token(config.ACCESS_KEY, config.ACCESS_SECRET)
         self._api = tweepy.API(self._auth, retry_count=10, retry_delay=1)
+        self.gakushoku = gakushoku.GakuShoku()
 
         #アカウント設定の読み込み
         self._name = self._api.me().screen_name
@@ -98,6 +100,8 @@ class BotStream(tweepywrap.StreamListener):
             BotStream.shutdown_hook,
             BotStream.delete_hook,
             BotStream.history_hook,
+            self.gakushoku.hook,
+            BotStream.limit_hook,
             BotStream.reply_hook,
             ]
     
@@ -246,6 +250,18 @@ class BotStream(tweepywrap.StreamListener):
             if now-history[name]['time']>config.RESET_CYCLE:
                 del history[name]
 
+    def limit_hook(self, status):
+        if status.text.find(u'API')<0 and status.text.find(u'api')<0:
+            return False
+        if status.text.find(u'残')<0:
+            return False
+        if status.text.find(u'報告')<0 and status.text.find(u'教')<0 and status.text.find(u'レポート')<0:
+            return False
+        limit = self._api.rate_limit_status()
+        self.reply_to(status, u'API残数: %(remaining_hits)d/%(hourly_limit)d,'
+                      u'リセット予定:%(reset_time)s (' % limit + str(datetime.datetime.now())+')')
+        return True
+
     def reply_hook(self, status):
         """リプライ返し"""
         self.reply_to(status, self._generator.get_text())
@@ -337,9 +353,8 @@ def main():
         bot.start_cron(async=True)
         streaming_process.join()
 
-sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
-sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
-
 if __name__=="__main__":
+    sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
     main()
 
