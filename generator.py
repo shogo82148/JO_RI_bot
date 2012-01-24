@@ -22,7 +22,7 @@ class MarkovGenerator(object):
         word = db.BOS
         while True:
             next_word = self.get_next(word)
-            if next_word==db.EOS:
+            if not next_word or next_word==db.EOS:
                 break
             text += next_word.split('\t')[0]
             #print next_word

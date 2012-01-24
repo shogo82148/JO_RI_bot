@@ -170,21 +170,46 @@ class BotStream(tweepywrap.StreamListener):
 
     def crawl(self):
         """オリジナルユーザの発言をクロール"""
+        def remove_tab(text):
+            return text.replace('\t', ' ').replace('\n', ' ')
+
         db = self._db
         api = self._api
         arg = {}
         arg['id'] = config.CRAWL_USER
         self.log('クロールなう')
+        new_statuses = []
         if self._db.since_id:
             arg['since_id'] = db.since_id
         try:
             statuses = tweepy.Cursor(api.user_timeline, **arg).items(3200)
             for status in statuses:
+                #テキストログを作成
+                columns = [remove_tab(status.text), str(status.created_at), str(status.id)]
+                reply_to = None
+                if status.in_reply_to_status_id:
+                    try:
+                        reply_to = api.get_status(status.in_reply_to_status_id)
+                    except:
+                        pass
+                if reply_to:
+                    columns.append(remove_tab(reply_to.text))
+                    columns.append(str(reply_to.created_at))
+                    columns.append(str(reply_to.id))
+                new_statuses.append('\t'.join(columns))
+
+                #DBへ登録
                 text = db.extract_text(status.text)
                 self.log('クロール:', status.id, text)
+                if reply_to:
+                    self.log('リプライ:', reply_to.id, reply_to.text)
                 db.add_text(text)
                 db.since_id = str( max(int(db.since_id), int(status.id)) )
                 #self.log(db.since_id)
+
+            with open('crawl.tsv', 'a') as f:
+                for line in reversed(new_statuses):
+                    f.write(line.encode('utf-8')+'\n')
         except Exception, e:
             self.log('エラー！', e)
 
