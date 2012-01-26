@@ -46,4 +46,6 @@ class MarkovGenerator(object):
 if __name__=="__main__":
     sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
     sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
-    print MarkovGenerator(DBManager()).get_text()
+    db = DBManager()
+    for i in xrange(100):
+        print MarkovGenerator(db).get_text()

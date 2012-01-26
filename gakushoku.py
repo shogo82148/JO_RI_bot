@@ -168,7 +168,7 @@ class GakuShoku(object):
     def hook(self, bot, status):
         text = self.find(status.text)
         if text:
-            bot.reply_to(status, text + u' [%s]' % datetime.datetime.today())
+            bot.reply_to(text + u' [%s]' % bot.get_timestamp(), status)
             return True
         else:
             return False

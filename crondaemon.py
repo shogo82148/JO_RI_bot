@@ -2,7 +2,6 @@
 # -*- coding:utf-8 -*-
 
 from threading import Thread, Lock, Event
-from threading import Lock
 import datetime
 import time
 from croniter import croniter
@@ -14,22 +13,29 @@ class crondaemon:
         self._lock = Lock()
         self._event = Event()
         
-    def add(self, crontime, func, args=(), kargs={}):
+    def append(self, crontime, func, args=(), kargs={}):
         it = croniter(crontime)
         with self._lock:
             self._crons.append([it.get_next(), it, func, args, kargs])
+        self._event.set()
 
     def _run(self):
         while self.running:
+            self._event.clear()
             with self._lock:
-                cron = min(self._crons, key=lambda x: x[0])
+                cron = None
+                if len(self._crons)>0:
+                    cron = min(self._crons, key=lambda x: x[0])
             
-            delta = cron[0] - time.time()
-            if delta>0:
-                self._event.wait(delta)
-            
+            if cron:
+                delta = cron[0] - time.time()
+                if delta>0:
+                    self._event.wait(delta)
+            else:
+                self._event.wait()
+
             if self._event.is_set():
-                break
+                continue
 
             cron[0] = cron[1].get_next()
             cron[2](*cron[3], **cron[4])
