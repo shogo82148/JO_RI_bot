@@ -31,7 +31,9 @@ class JO_RI_bot(BaseBot.BaseBot):
                 limit_msg = u'今、ちょっと取り込んでまして・・・'
                               u'またのご利用をお待ちしております！'))
         self.append_reply_hook(JO_RI_bot.limit_hook)
-        self.append_reply_hook(gakushoku.GakuShoku().hook)
+        self.append_reply_hook(gakushoku.GakuShoku(
+                config.MENU_EMAIL, config.MENU_PASSWORD,
+                config.MENU_ID, config.MENU_SHEET).hook)
 
         dokusho = Dokusho(
             config.CRAWL_USER,

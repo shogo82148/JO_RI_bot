@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-import config
+"""
+学食のメニューをツイートする
+"""
+
 import xml.etree.ElementTree as ElementTree
 import sys
 import codecs
@@ -12,12 +15,12 @@ import re
 import random
 
 class GakuShoku(object):
-    def __init__(self):
+    def __init__(self, mail, password, menu_id, menu_sheet):
         self._lunch_end = datetime.time(14, 0, 0)
         self._dinner_end = datetime.time(19, 0, 0)
-        self.client = gdata.spreadsheet.text_db.DatabaseClient(config.MENU_EMAIL, config.MENU_PASSWORD)
-        self.db = self.client.GetDatabases(config.MENU_ID)[0]
-        self.tbl = self.db.GetTables(config.MENU_SHEET)[0]
+        self.client = gdata.spreadsheet.text_db.DatabaseClient(mail, password)
+        self.db = self.client.GetDatabases(menu_id)[0]
+        self.tbl = self.db.GetTables(menu_sheet)[0]
         self.random = random.Random()
 
     def get_menu(self, date=None, year=None, month=None, day=None):
@@ -173,9 +176,11 @@ class GakuShoku(object):
         else:
             return False
 
-def main():
+def main():    
+    import config
     query = sys.argv[1].decode('utf-8')
-    print GakuShoku().find(query) + u' [%s]' % datetime.datetime.today().ctime()
+    print GakuShoku(config.MENU_EMAIL, config.MENU_PASSWORD,
+                config.MENU_ID, config.MENU_SHEET).find(query) + u' [%s]' % datetime.datetime.today().ctime()
 
 if __name__=="__main__":
     sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
