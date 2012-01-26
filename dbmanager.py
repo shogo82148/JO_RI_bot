@@ -3,7 +3,7 @@
 
 import MeCab
 import config
-import sqlite3
+import anydbm
 import re
 import sys
 
@@ -36,20 +36,25 @@ def Bigram(itr):
         
 
 class DBManager(object):
-    BOS = '\tBOS/EOS,*,*,*,*,*,*,*,*'
-    EOS = '\tBOS/EOS,*,*,*,*,*,*,*,*'
+    BOS = '\tBOS/EOS,*,*'
+    EOS = '\tBOS/EOS,*,*'
     bigram_columns = ['count', 'following']
 
-    def __init__(self):
-        self._mecab = MeCab.Tagger()
+    def __init__(self, mecab=None, dbfile='bigram.db'):
+        self._mecab = mecab or MeCab.Tagger()
+        self.db = anydbm.open(dbfile, 'c')
+        self._closed = False
 
-        self.db = sqlite3.connect("db.sqlite3")
-        self.db.execute("create table if not exists bigram (word1 varchar(20),"
-                        "word2 varchar(20),"
-                        + ','.join('%s integer default 0' % column
-                                   for column in self.bigram_columns) +
-                        ");")
-        self.db.commit()
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        self.close()
+
+    def close(self):
+        if not self._closed:
+            self.db.close()
+            self._closed = True
 
     _re_mention = re.compile(r'@\w+')
     _re_url = re.compile(r'(http)://[_\.a-zA-Z0-9\?&=\-%/#!]*')
@@ -60,7 +65,8 @@ class DBManager(object):
     _re_dot = re.compile(r'^\.\s*')
     def extract_text(self, text):
         """URLやメンションなどを削除する"""
-        text = self._re_url.sub('', text)
+        if self._re_url.search(text):
+            return ''
         text = self._re_hash_tag.sub('', text)
         text = self._re_retweet.sub('', text)
         text = self._re_mention.sub('', text)
@@ -69,39 +75,56 @@ class DBManager(object):
         text = text.strip()
         return text
 
-    def add_text(self, text, column='count'):
+    def node2word(self, node):
+        features = node.feature.split(',')[0:3]
+        text = "%s\t%s,%s,%s" % tuple([node.surface]+features)
+        return text.decode('utf-8')
+
+    def add_text(self, text):
         """ テキストをデータベースに登録する """
 
-        if column not in self.bigram_columns:
-            return
-
+        db = self.db
         bigrams = {}
         nodes = Parse(text, self._mecab)
-        g = (("%s\t%s" % (n.surface, n.feature)).decode('utf-8') for n in nodes)
+        g = (self.node2word(n) for n in nodes)
 
-        for bigram in Bigram(g):
-            bigrams[bigram] = bigrams.get(bigram, 0) + 1
+        for word1, word2 in Bigram(g):
+            w1 = word1.encode('utf-8')
+            w2 = word2.encode('utf-8')
+            bigram = w1 + '\n' + w2
 
-        for bigram, count in bigrams.iteritems():
-            dbbigram = self.db.execute(
-                'select %s from bigram where word1=? and word2=?' % column, bigram).fetchone()
-            if not dbbigram:
-                self.db.execute(
-                    'insert into bigram default values')
-                self.db.execute(
-                    'update bigram set word1=?, word2=? where word1 isnull and word2 isnull', bigram)
-                dbbigram = (0,)
-            self.db.execute(
-                'update bigram set %s=? where word1=? and word2=?' % column,
-                (dbbigram[0]+count, )+bigram)
-        self.db.commit()
+            if bigram not in db:
+                db[bigram] = '1'
+                if w1 not in db:
+                    db[w1] = w2
+                else:
+                    db[w1] += '\n' + w2
+            else:
+                db[bigram] = str(int(db[bigram])+1)
 
-    def next_word(self, word, column='count'):
+    def next_word(self, word):
         """ wordの次に出現する単語を探す """
-        if column not in self.bigram_columns:
-            return
-        return self.db.execute(
-            'select word2,%s from bigram where word1=?' % column, (word, ))
+        db = self.db
+        str_word = word.encode('utf-8')
+        if str_word in db:
+            next_words = db[str_word].split('\n')
+            for w in next_words:
+                key = str_word+'\n'+w
+                if key not in db:
+                    continue
+                yield (w.decode('utf-8'), int(db[key]))
+
+    def _get_since_id(self):
+        if 'since_id' in self.db:
+            return self.db['since_id']
+        else:
+            return ''
+
+    def _set_since_id(self, since_id):
+        self.db['since_id'] = str(since_id)
+
+    since_id = property(_get_since_id, _set_since_id)
+
 
 if __name__=="__main__":
     db = DBManager()

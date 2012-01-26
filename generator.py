@@ -22,10 +22,10 @@ class MarkovGenerator(object):
         word = db.BOS
         while True:
             next_word = self.get_next(word)
-            if next_word==db.EOS:
+            if not next_word or next_word==db.EOS:
                 break
             text += next_word.split('\t')[0]
-            print next_word
+            #print next_word
             word = next_word
         return text
 
@@ -46,4 +46,6 @@ class MarkovGenerator(object):
 if __name__=="__main__":
     sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
     sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
-    print MarkovGenerator(DBManager()).get_text()
+    db = DBManager()
+    for i in xrange(100):
+        print MarkovGenerator(db).get_text()
