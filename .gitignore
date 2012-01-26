@@ -3,3 +3,5 @@
 *.pyc
 *~
 *.sqlite3
+*.db
+*.tsv
