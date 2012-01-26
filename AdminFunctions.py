@@ -2,8 +2,8 @@
 # -*- coding:utf-8 -*-
 
 import BaseBot
+import time
 import datetime
-import logging
 
 class admin_hook(object):
     """特定ユーザしか実行できないコマンド"""
@@ -61,4 +61,37 @@ class shutdown_hook(admin_hook):
         if self.is_allowed(status):
             raise BaseBot.BotShutdown
         return False
+
+class history_hook(object):
+    """連投規制機能"""
+    def __init__(self, reply_limit, reset_cycle, limit_msg=None):
+        self.reply_limit = reply_limit
+        self.reset_cycle = reset_cycle
+        self.limit_msg = limit_msg
+        self.history = {}
+
+    def __call__(self, bot, status):
+        author = status.author.screen_name.lower()
+        history = self.reply_history
+        now = time.time()
+
+        #履歴更新
+        if author in history:
+            if history[author]['count']==self.reply_limit and self.limit_msg:
+                self.reply_to(u'%s [%s]' %
+                              (self.limit_msg, bot.get_timestamp()),
+                              status)
+            history[author]['count'] += 1
+            if history[author]['count']>config.REPLY_LIMIT:
+                return True
+        else:
+            history[author] = {
+                'time': now,
+                'count': 1,
+                }
+
+        #古い履歴は削除
+        for name in history.keys():
+            if now-history[name]['time']>self.reset_cycle:
+                del history[name]
 
