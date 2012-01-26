@@ -34,8 +34,12 @@ class JO_RI_bot(BaseBot.BaseBot):
 
         self.clone_bot = CloneBot(config.CRAWL_USER)
         self.append_reply_hook(self.clone_bot.reply_hook)
-        self.append_cron('30 * * * *', self.clone_bot.crawl)
-        self.append_cron('*/20 * * * *', self.clone_bot.update_status)
+        self.append_cron('30 * * * *',
+                         self.clone_bot.crawl,
+                         name=u'Cron Crawling')
+        self.append_cron('*/20 * * * *',
+                         self.clone_bot.update_status,
+                         name=u'Cron Update Status')
 
     def on_start(self):
         self.clone_bot.crawl(self)

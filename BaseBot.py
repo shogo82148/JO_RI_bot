@@ -156,9 +156,9 @@ class BaseBot(tweepywrap.StreamListener):
         """リプライフックを追加する"""
         self._reply_hooks.append(func)
 
-    def append_cron(self, crontime, func, args=(), kargs={}):
+    def append_cron(self, crontime, func, args=(), kargs={}, name=None):
         """定期実行タスクを追加する"""
-        cron_id = u'cron-' + str(self._cron_id)
+        cron_id = name or (u'cron-' + str(self._cron_id))
         self._cron_id += 1
 
         def wrap():
