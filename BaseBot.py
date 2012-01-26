@@ -18,6 +18,29 @@ logger = logging.getLogger("BaseBot")
 class BotShutdown(Exception):
     """ボットをシャットダウンしたいときに投げる例外"""
     pass
+class APIMock(object):
+    def __to_string(self, obj):
+        if isinstance(obj, str):
+            return "'%s'" % obj
+        elif isinstance(obj, unicode):
+            return "u'%s'" % obj.encode('utf-8')
+        else:
+            return str(obj)
+    def __getattr__(self, name):
+        myname = name
+        def func(*args, **kargs):
+            print myname + ':'
+            for arg in args:
+                print '\t' + self.__to_string(arg)
+            for name, arg in kargs.iteritems():
+                print '\t%s=%s' % (name, self.__to_string(arg))
+            print
+        return func
+    def rate_limit_status(self):
+        return {"reset_time_in_seconds": 1277485629,
+                "remaining_hits": 350,
+                "hourly_limit": 350,
+                "reset_time": "Fri Jun 25 17:07:09 +0000 2010"}
 
 def StreamProcess(queue, consumer_key, consumer_secret, access_key, access_secret):
     """ユーザストリームプロセスの実行内容"""
@@ -89,6 +112,11 @@ class BaseBot(tweepywrap.StreamListener):
                           default='',
                           help="Filename for log output",
                           )
+        parser.add_option('-r', '--reply',
+                          dest='reply',
+                          default='',
+                          help="Test reply to the bot",
+                          )
         parser.add_option('-d', '--debug',
                           dest='debug',
                           action='store_true',
@@ -105,7 +133,10 @@ class BaseBot(tweepywrap.StreamListener):
         parser = self.setup_optparser()
         options, args = parser.parse_args(sys.argv)
         self.setup_logger(options)
-        self.start()
+        if options.reply:
+            self.test_reply(options.reply)
+        else:
+            self.start()
 
     def start(self):
         """ボットの動作を開始する"""
@@ -146,6 +177,21 @@ class BaseBot(tweepywrap.StreamListener):
         self._cron.stop()
         logger.info(u'Shutdown')
 
+    def test_reply(self, reply):
+        class Mock(object):
+            pass
+        if isinstance(reply, str):
+            reply = reply.decode('utf-8')
+        self.api = APIMock()
+        status = Mock()
+        status.id = 1234567890
+        status.text = '@' + self._name + ' ' + reply
+        status.in_reply_to_status_id = None
+        status.created_at = datetime.datetime.now()
+        status.author = Mock()
+        status.author.screen_name = 'test_user'
+        self.on_status(status)
+
     def on_start(self):
         pass
 
@@ -156,9 +202,9 @@ class BaseBot(tweepywrap.StreamListener):
         """リプライフックを追加する"""
         self._reply_hooks.append(func)
 
-    def append_cron(self, crontime, func, args=(), kargs={}):
+    def append_cron(self, crontime, func, args=(), kargs={}, name=None):
         """定期実行タスクを追加する"""
-        cron_id = u'cron-' + str(self._cron_id)
+        cron_id = name or (u'cron-' + str(self._cron_id))
         self._cron_id += 1
 
         def wrap():
@@ -190,9 +236,9 @@ class BaseBot(tweepywrap.StreamListener):
         logger.info(u'delete:' + status_id)
         self.api.destroy_status(status_id)
 
-    def reply_to(self, status, in_reply_to):
+    def reply_to(self, status, in_reply_to, cut=True):
         text = u'@%s %s' % (in_reply_to.author.screen_name, status)
-        if len(text)>140:
+        if cut and len(text)>140:
             text = text[0:140]
         self.update_status(text,
                            in_reply_to_status_id=in_reply_to.id)
