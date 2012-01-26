@@ -8,6 +8,7 @@ import datetime
 import random
 import logging
 import gakushoku
+from CloneBot import CloneBot
 
 logger = logging.getLogger("BaseBot")
 
@@ -26,7 +27,12 @@ class JO_RI_bot(BaseBot.BaseBot):
                 no_in_reply = u'in_reply_to入ってないよ！'))
         self.append_reply_hook(gakushoku.GakuShoku().hook)
 
+        self.clone_bot = CloneBot(config.CRAWL_USER)
+        self.append_reply_hook(self.clone_bot.reply_hook)
+        self.append_cron('30 * * * *', self.clone_bot.crawl)
+
     def on_start(self):
+        self.clone_bot.crawl(self)
         self.update_status(random.choice([
                     u'【お知らせ】颯爽登場、銀河美少年！ 綺羅星☆[%s]',
                     u'【お知らせ】ほろーん[%s]',
