@@ -21,6 +21,24 @@ class admin_hook(object):
         else:
             return status.author.screen_name.lower() in self._allowed_users
 
+    def _is_command(self, status, command):
+        if isinstance(command, (list, tuple)):
+            for c in command:
+                if not self._is_command(status, c):
+                    return False
+            return True
+        elif isinstance(command, set):
+            for c in command:
+                if self._is_command(status, c):
+                    return True
+            return False    
+        elif isinstance(command, (str, unicode)):
+            return status.text.find(command)>=0
+        elif callable(command):
+            return commad(status)
+        else:
+            return False
+
     def __call__(self, bot, status):
         pass
 
@@ -33,7 +51,7 @@ class delete_hook(admin_hook):
         self._not_allowed = not_allowed
 
     def __call__(self, bot, status):
-        if not self._command or status.text.find(self._command)<0:
+        if not self._is_command(status, self._command):
             return False
         if self.is_allowed(status):
             if status.in_reply_to_status_id:
@@ -56,7 +74,7 @@ class shutdown_hook(admin_hook):
         self._no_in_reply = no_in_reply
 
     def __call__(self, bot, status):
-        if not self._command or status.text.find(self._command)<0:
+        if not self._is_command(status, self._command):
             return False
         if self.is_allowed(status):
             raise BaseBot.BotShutdown
@@ -68,7 +86,7 @@ class history_hook(object):
         self.reply_limit = reply_limit
         self.reset_cycle = reset_cycle
         self.limit_msg = limit_msg
-        self.history = {}
+        self.reply_history = {}
 
     def __call__(self, bot, status):
         author = status.author.screen_name.lower()
@@ -82,7 +100,7 @@ class history_hook(object):
                               (self.limit_msg, bot.get_timestamp()),
                               status)
             history[author]['count'] += 1
-            if history[author]['count']>config.REPLY_LIMIT:
+            if history[author]['count']>self.reply_limit:
                 return True
         else:
             history[author] = {

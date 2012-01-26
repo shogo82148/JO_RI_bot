@@ -20,16 +20,17 @@ class JO_RI_bot(BaseBot.BaseBot):
                                         config.ACCESS_SECRET)
         self.append_reply_hook(AdminFunctions.shutdown_hook(
                 allowed_users = config.ADMIN_USER,
-                command = u'バルス'))
+                command = set([u'バルス', u'シャットダウン', u'shutdown', u'halt', u':q!', u'c-x c-c'])))
         self.append_reply_hook(AdminFunctions.delete_hook(
                 allowed_users = config.ADMIN_USER,
-                command = u'削除',
+                command = set([u'削除', u'デリート', u'delete']),
                 no_in_reply = u'in_reply_to入ってないよ！'))
         self.append_reply_hook(AdminFunctions.history_hook(
                 reply_limit = config.REPLY_LIMIT,
                 reset_cycle = config.RESET_CYCLE,
-                limit_msg = '今、ちょっと取り込んでまして・・・'
+                limit_msg = u'今、ちょっと取り込んでまして・・・'
                               u'またのご利用をお待ちしております！'))
+        self.append_reply_hook(JO_RI_bot.limit_hook)
         self.append_reply_hook(gakushoku.GakuShoku().hook)
 
         self.clone_bot = CloneBot(config.CRAWL_USER)
@@ -65,8 +66,9 @@ class JO_RI_bot(BaseBot.BaseBot):
         if text.find(u'報告')<0 and text.find(u'教')<0 and text.find(u'レポート')<0:
             return False
         limit = self.api.rate_limit_status()
-        self.reply_to(status, u'API残数: %(remaining_hits)d/%(hourly_limit)d,'
-                      u'リセット予定:%(reset_time)s (' % limit + self.get_timestamp()+')')
+        self.reply_to(u'API残数: %(remaining_hits)d/%(hourly_limit)d,'
+                      u'リセット予定:%(reset_time)s (' % limit + self.get_timestamp()+')',
+                      status)
         return True
 
 if __name__=='__main__':
