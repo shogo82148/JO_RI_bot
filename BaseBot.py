@@ -179,6 +179,20 @@ class BaseBot(tweepywrap.StreamListener):
                 if ret:
                     break
 
+    def get_timestamp(self):
+        return time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
+
     def update_status(self, status, *args, **kargs):
-        logger.info('update:' + status)
+        logger.info(u'update:' + status)
         self.api.update_status(status, *args, **kargs)
+
+    def destroy_status(self, status_id):
+        logger.info(u'delete:' + status_id)
+        self.api.destroy_status(status_id)
+
+    def reply_to(self, status, in_reply_to):
+        text = u'@%s %s' % (in_reply_to.author.screen_name, status)
+        if len(text)>140:
+            text = text[0:140]
+        self.update_status(text,
+                           in_reply_to_status_id=in_reply_to.id)
