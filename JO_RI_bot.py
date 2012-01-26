@@ -3,6 +3,7 @@
 
 import config
 import BaseBot
+import AdminFunctions
 import datetime
 import random
 import logging
@@ -15,11 +16,13 @@ class JO_RI_bot(BaseBot.BaseBot):
                                         config.CONSUMER_SECRET,
                                         config.ACCESS_KEY,
                                         config.ACCESS_SECRET)
-        self.ignore_user = [name.lower() for name in config.IGNORE_USER]
-        self.admin_user = [name.lower() for name in config.ADMIN_USER]
-        self.reply_history = {}
-        self.append_reply_hook(JO_RI_bot.shutdown_hook)
-        self.append_reply_hook(JO_RI_bot.delete_hook)
+        self.append_reply_hook(AdminFunctions.shutdown_hook(
+                allowed_users = config.ADMIN_USER,
+                command = u'バルス'))
+        self.append_reply_hook(AdminFunctions.delete_hook(
+                allowed_users = config.ADMIN_USER,
+                command = u'削除',
+                no_in_reply = u'in_reply_to入ってないよ！'))
 
     def on_start(self):
         self.update_status(random.choice([
@@ -34,28 +37,6 @@ class JO_RI_bot(BaseBot.BaseBot):
                     u'【お知らせ】ボットは滅びぬ、何度でも蘇るさ[%s]',
                     u'【お知らせ】シャットダウンなう[%s]',
                     ]) % self.get_timestamp())
-
-    def delete_hook(self, status):
-        """削除コマンド"""
-        if status.text.find(u'削除')<0:
-            return False
-        if status.author.screen_name.lower() in self.admin_user:
-            #削除実行
-            if status.in_reply_to_status_id:
-                self.destroy_status(status.in_reply_to_status_id)
-            else:
-                self.reply_to(u'in_reply_to入ってないよ！[%s]' % self.get_timestamp())
-            return True
-        return False
-
-    def shutdown_hook(self, status):
-        """シャットダウンコマンド"""
-        if status.text.find(u'バルス')<0:
-            return False
-        if status.author.screen_name.lower() in self.admin_user:
-            raise BaseBot.BotShutdown
-        else:
-            return False
 
 if __name__=='__main__':
     bot = JO_RI_bot()
