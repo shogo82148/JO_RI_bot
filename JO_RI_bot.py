@@ -7,6 +7,7 @@ import AdminFunctions
 import datetime
 import random
 import logging
+import gakushoku
 
 logger = logging.getLogger("BaseBot")
 
@@ -23,13 +24,14 @@ class JO_RI_bot(BaseBot.BaseBot):
                 allowed_users = config.ADMIN_USER,
                 command = u'削除',
                 no_in_reply = u'in_reply_to入ってないよ！'))
+        self.append_reply_hook(gakushoku.GakuShoku().hook)
 
     def on_start(self):
         self.update_status(random.choice([
                     u'【お知らせ】颯爽登場、銀河美少年！ 綺羅星☆[%s]',
-                    u'【お知らせ】ほろーん',
+                    u'【お知らせ】ほろーん[%s]',
                     u'【お知らせ】起動なう[%s]',
-                    ]) % str(datetime.datetime.now()))
+                    ]) % self.get_timestamp())
 
     def on_shutdown(self):
         self.update_status(random.choice([
