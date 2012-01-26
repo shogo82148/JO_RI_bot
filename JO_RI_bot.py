@@ -9,7 +9,7 @@ import random
 import logging
 import gakushoku
 from CloneBot import CloneBot
-
+from dokusho import Dokusho
 logger = logging.getLogger("BaseBot")
 
 class JO_RI_bot(BaseBot.BaseBot):
@@ -32,6 +32,13 @@ class JO_RI_bot(BaseBot.BaseBot):
                               u'またのご利用をお待ちしております！'))
         self.append_reply_hook(JO_RI_bot.limit_hook)
         self.append_reply_hook(gakushoku.GakuShoku().hook)
+
+        dokusho = Dokusho(
+            config.CRAWL_USER,
+            config.DOKUSHO_USER,
+            config.AMAZON_ACCESS_KEY_ID,
+            config.AMAZON_SECRET_ACCESS_KEY)
+        self.append_reply_hook(dokusho.hook)
 
         self.clone_bot = CloneBot(config.CRAWL_USER)
         self.append_reply_hook(self.clone_bot.reply_hook)

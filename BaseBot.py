@@ -236,9 +236,9 @@ class BaseBot(tweepywrap.StreamListener):
         logger.info(u'delete:' + status_id)
         self.api.destroy_status(status_id)
 
-    def reply_to(self, status, in_reply_to):
+    def reply_to(self, status, in_reply_to, cut=True):
         text = u'@%s %s' % (in_reply_to.author.screen_name, status)
-        if len(text)>140:
+        if cut and len(text)>140:
             text = text[0:140]
         self.update_status(text,
                            in_reply_to_status_id=in_reply_to.id)
