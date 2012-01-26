@@ -1,0 +1,30 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
+#Twitter Account Seeting
+CONSUMER_KEY = '<Your Consumer Key>'
+CONSUMER_SECRET = '<your Secret Key>'
+ACCESS_KEY = '<Your Access Key>'
+ACCESS_SECRET = '<Your Access Secret>'
+
+#Crawl Settings
+CRAWL_USER = '<Twitter Account who will be cloned>'
+
+#Bot Settings
+ADMIN_USER = [] #Users who can execute administrator command
+REPLY_LIMIT = 100
+RESET_CYCLE = 60*60
+
+#学食メニューの設定
+MENU_ID = '0AmjmnXFuHdP0dDh0UHE4LU5EYXZtMzBZNUtOZnRnWmc'
+MENU_SHEET = 'od6'
+MENU_EMAIL = '<Your Gmail Account>'
+MENU_PASSWORD = '<Your Password>'
+
+#読書メータの設定
+DOKUSHO_USER = '<User ID>'
+
+#Amazonの設定
+AMAZON_ACCESS_KEY_ID = '<Your Access Key ID>'
+AMAZON_SECRET_ACCESS_KEY = '<Your Secret Access Key>'
+AMAZON_ASSOCIATE_TAG = '<Associate Tag>'
