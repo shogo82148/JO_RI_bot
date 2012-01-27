@@ -145,7 +145,7 @@ class Dokusho(object):
         return None
 
     _re_mention = re.compile(ur'@\w+')
-    _re_hook = re.compile(ur'^(.*)の感想を?教えて')
+    _re_hook = re.compile(ur'^(.*)の(感想|かんそう|かんそー)を?(教えて|おしえて)')
     def hook(self, bot, status):
         text = self._re_mention.sub('', status.text)
         m = self._re_hook.search(text)
