@@ -38,6 +38,7 @@ class JO_RI_bot(BaseBot.BaseBot):
             config.AMAZON_ACCESS_KEY_ID,
             config.AMAZON_SECRET_ACCESS_KEY)
         self.append_reply_hook(dokusho.hook)
+        self.append_cron('0 0 * * mon', dokusho.crawl)
 
         self.append_reply_hook(gakushoku.GakuShoku(
                 config.MENU_EMAIL, config.MENU_PASSWORD,
