@@ -10,6 +10,8 @@ import logging
 import gakushoku
 from CloneBot import CloneBot
 from dokusho import Dokusho
+import busNUT
+
 logger = logging.getLogger("BaseBot")
 
 class JO_RI_bot(BaseBot.BaseBot):
@@ -43,6 +45,8 @@ class JO_RI_bot(BaseBot.BaseBot):
         self.append_reply_hook(gakushoku.GakuShoku(
                 config.MENU_EMAIL, config.MENU_PASSWORD,
                 config.MENU_ID, config.MENU_SHEET).hook)
+
+        self.append_reply_hook(busNUT.Bus().hook)
 
         self.clone_bot = CloneBot(config.CRAWL_USER)
         self.append_reply_hook(self.clone_bot.reply_hook)
