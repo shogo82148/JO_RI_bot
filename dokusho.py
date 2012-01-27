@@ -145,7 +145,7 @@ class Dokusho(object):
         return None
 
     _re_mention = re.compile(ur'@\w+')
-    _re_hook = re.compile(ur'^(.*)の感想教えて')
+    _re_hook = re.compile(ur'^(.*)の(感想|かんそう|かんそー)を?(教えて|おしえて)')
     def hook(self, bot, status):
         text = self._re_mention.sub('', status.text)
         m = self._re_hook.search(text)
@@ -157,14 +157,25 @@ class Dokusho(object):
         if not item:
             bot.reply_to(
                 u'「%s」という本は見つかりませんでした[%s]' % (keyword, bot.get_timestamp()), status)
-        elif item['comment'] is None:
-            bot.reply_to(
-                u'%sはまだ「%s」を読んでいないようです。買って読んでみては？ %s [%s]' % 
-                (self._user_name, item['title'], item['links']['Add To Wishlist'], bot.get_timestamp()), status, cut=False)
         elif not item['comment']:
-            bot.reply_to(
-                u'%sはまだ「%s」のコメントをまだ書いていません。本人に聞くか、買って読んでみては？ %s [%s]' % 
-                (self._user_name, item['title'], item['links']['Add To Wishlist'], bot.get_timestamp()), status, cut=False)
+            if item['comment'] is None:
+                text = u'%sはまだ「%s」を未読です。買って読んでみては？' % (
+                    self._user_name, item['title'])
+            else:
+                text = u'%sは「%s」を読んだけどコメントは未投稿です。買って読んでみては？' % (
+                    self._user_name, item['title'])
+            limit = 140 - len(text)
+            limit -= len('@' + status.author.screen_name + ' ')
+            if limit>=21:
+                text += ' ' + item['links']['All Customer Reviews']
+                limit -= 21
+            if limit>=21:
+                text += ' %s/b/%s' % (_dokusho_base, item['isbn'])
+                limit -= 21
+            timestamp = u' [%s]' % bot.get_timestamp()
+            if limit>len(timestamp):
+                text += timestamp
+            bot.reply_to(text, status, cut=False)
         else:
             comment = item['comment']
             limit = 140
@@ -187,7 +198,8 @@ def main():
     query = ''
     if len(sys.argv)>1:
         query = sys.argv[1].decode('utf-8')
-    print dokusho.get_comment(query)['comment']
+    for name, val in dokusho.get_comment(query).iteritems():
+        print name, val
 
 if __name__=="__main__":
     sys.stdin  = codecs.getreader('utf-8')(sys.stdin)

@@ -153,7 +153,7 @@ class BaseBot(tweepywrap.StreamListener):
 
         self.on_start()
 
-        while True:
+        while streaming_process.is_alive():
             try:
                 data_type, data = self._queue.get()
                 if data_type=='stream':

@@ -10,6 +10,8 @@ import logging
 import gakushoku
 from CloneBot import CloneBot
 from dokusho import Dokusho
+import busNUT
+
 logger = logging.getLogger("BaseBot")
 
 class JO_RI_bot(BaseBot.BaseBot):
@@ -31,9 +33,6 @@ class JO_RI_bot(BaseBot.BaseBot):
                 limit_msg = u'今、ちょっと取り込んでまして・・・'
                               u'またのご利用をお待ちしております！'))
         self.append_reply_hook(JO_RI_bot.limit_hook)
-        self.append_reply_hook(gakushoku.GakuShoku(
-                config.MENU_EMAIL, config.MENU_PASSWORD,
-                config.MENU_ID, config.MENU_SHEET).hook)
 
         dokusho = Dokusho(
             config.CRAWL_USER,
@@ -41,6 +40,13 @@ class JO_RI_bot(BaseBot.BaseBot):
             config.AMAZON_ACCESS_KEY_ID,
             config.AMAZON_SECRET_ACCESS_KEY)
         self.append_reply_hook(dokusho.hook)
+        self.append_cron('0 0 * * mon', dokusho.crawl)
+
+        self.append_reply_hook(gakushoku.GakuShoku(
+                config.MENU_EMAIL, config.MENU_PASSWORD,
+                config.MENU_ID, config.MENU_SHEET).hook)
+
+        self.append_reply_hook(busNUT.Bus().hook)
 
         self.clone_bot = CloneBot(config.CRAWL_USER)
         self.append_reply_hook(self.clone_bot.reply_hook)
