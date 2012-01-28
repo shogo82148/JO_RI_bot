@@ -35,8 +35,9 @@ class GakuShoku(object):
         return records[0].content
 
     _re_menu = re.compile(u'[メめﾒ][ニにﾆ][ュゅｭ]|menu|[昼晩夕]食|めし|ごはん|飯|[abc]定|学食'
-                          u'|(腹|なか|はら).*(減った|すいた|空いた)'
-                          u'|[フふﾌ][ンんﾝ](ガ|が|ｶﾞ)')
+                          u'|(腹|なか|はら).*(減った|へった|すいた|空いた)'
+                          u'|[フふﾌ][ンんﾝ](ガ|が|ｶﾞ)'
+                          u'|はらへ')
     _re_today = re.compile(u'今日|きょう')
     _re_tomorrow = re.compile(u'明日|翌日|あした|よくじつ')
     _re_after_tomorrow = re.compile(u'明後日|あさって|みょうごにち')
