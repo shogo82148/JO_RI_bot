@@ -15,6 +15,8 @@ ADMIN_USER = [] #Users who can execute administrator command
 REPLY_LIMIT = 100
 RESET_CYCLE = 60*60
 
+BOT_USER = []
+
 #学食メニューの設定
 MENU_ID = '0AmjmnXFuHdP0dDh0UHE4LU5EYXZtMzBZNUtOZnRnWmc'
 MENU_SHEET = 'od6'
