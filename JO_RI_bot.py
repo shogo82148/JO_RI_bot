@@ -75,6 +75,7 @@ class JO_RI_bot(BaseBot.BaseBot):
 
         self.append_reply_hook(busNUT.Bus().hook)
         self.append_reply_hook(DayOfTheWeek.hook)
+        self.append_reply_hook(JO_RI_bot.nullpo)
 
         self.clone_bot = GlobalCloneBot(config.CRAWL_USER)
         self.append_reply_hook(self.clone_bot.reply_hook)
@@ -113,6 +114,14 @@ class JO_RI_bot(BaseBot.BaseBot):
                       u'リセット予定:%(reset_time)s (' % limit + self.get_timestamp()+')',
                       status)
         return True
+
+    def nullpo(self, status):
+        """ぬるぽ→ガッ"""
+        if status.text.find(u'ぬるぽ')<0:
+            return False
+        bot.reply_to(u'ｶﾞｯ [%s]' % bot.get_timestamp(), status)
+        return True
+
 
 if __name__=='__main__':
     bot = JO_RI_bot()
