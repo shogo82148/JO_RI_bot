@@ -11,8 +11,31 @@ import gakushoku
 from CloneBot import CloneBot
 from dokusho import Dokusho
 import busNUT
+from Translator import Translator
 
 logger = logging.getLogger("BaseBot")
+
+class GlobalCloneBot(CloneBot):
+    def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db'):
+        super(GlobalCloneBot, self).__init__(crawl_user, mecab, log_file, db_file)
+        self.translator = Translator(config.BING_APP_KEY, 'ja', 'en')
+
+    def reply_hook(self, bot, status):
+        """適当にリプライを返してあげる"""
+        text = self.get_text()
+        if status:
+            bot.reply_to(text, status)
+        else:
+            bot.update_status(text)
+            #時々英訳
+            if random.random()<0.2:
+                text = self.translator.translate(text)
+                bot.update_status(u'[Translated] '+text)
+                #時々再翻訳
+                if random.random()<0.5:
+                    text = self.translator.translate(text, 'en', 'ja')
+                    bot.update_status(u'[再翻訳] ' + text)
+        return True
 
 class JO_RI_bot(BaseBot.BaseBot):
     def __init__(self):
@@ -34,6 +57,9 @@ class JO_RI_bot(BaseBot.BaseBot):
                               u'またのご利用をお待ちしております！'))
         self.append_reply_hook(JO_RI_bot.limit_hook)
 
+        self.translator = Translator(config.BING_APP_KEY)
+        self.append_reply_hook(self.translator.hook)
+
         dokusho = Dokusho(
             config.CRAWL_USER,
             config.DOKUSHO_USER,
@@ -48,7 +74,7 @@ class JO_RI_bot(BaseBot.BaseBot):
 
         self.append_reply_hook(busNUT.Bus().hook)
 
-        self.clone_bot = CloneBot(config.CRAWL_USER)
+        self.clone_bot = GlobalCloneBot(config.CRAWL_USER)
         self.append_reply_hook(self.clone_bot.reply_hook)
         self.append_cron('30 * * * *',
                          self.clone_bot.crawl,

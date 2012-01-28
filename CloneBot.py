@@ -22,16 +22,20 @@ class CloneBot(object):
 
     def reply_hook(self, bot, status):
         """適当にリプライを返してあげる"""
-        with DBManager(self._mecab, self._db_file) as db:
-            text = MarkovGenerator(db).get_text()
-            if status:
-                bot.reply_to(text, status)
-            else:
-                bot.update_status(text)
+        text = self.get_text()
+        if status:
+            bot.reply_to(text, status)
+        else:
+            bot.update_status(text)
         return True
 
     def update_status(self, bot):
         self.reply_hook(bot, None)
+
+    def get_text(self):
+        with DBManager(self._mecab, self._db_file) as db:
+            text = MarkovGenerator(db).get_text()
+        return text
 
     def crawl(self, bot):
         """オリジナルユーザの発言をクロール"""
