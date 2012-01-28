@@ -12,6 +12,7 @@ from CloneBot import CloneBot
 from dokusho import Dokusho
 import busNUT
 from Translator import Translator
+import DayOfTheWeek
 
 logger = logging.getLogger("BaseBot")
 
@@ -73,6 +74,7 @@ class JO_RI_bot(BaseBot.BaseBot):
                 config.MENU_ID, config.MENU_SHEET).hook)
 
         self.append_reply_hook(busNUT.Bus().hook)
+        self.append_reply_hook(DayOfTheWeek.hook)
 
         self.clone_bot = GlobalCloneBot(config.CRAWL_USER)
         self.append_reply_hook(self.clone_bot.reply_hook)
