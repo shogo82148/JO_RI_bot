@@ -80,15 +80,19 @@ class shutdown_hook(admin_hook):
             raise BaseBot.BotShutdown
         return False
 
-class history_hook(object):
+class history_hook(admin_hook):
     """連投規制機能"""
-    def __init__(self, reply_limit, reset_cycle, limit_msg=None):
+    def __init__(self, reply_limit, reset_cycle, limit_msg=None, allowed_users=None):
+        super(history_hook, self).__init__(allowed_users)
         self.reply_limit = reply_limit
         self.reset_cycle = reset_cycle
         self.limit_msg = limit_msg
         self.reply_history = {}
 
     def __call__(self, bot, status):
+        if not self.is_allowed(status):
+            return False
+
         author = status.author.screen_name.lower()
         history = self.reply_history
         now = time.time()
@@ -113,3 +117,4 @@ class history_hook(object):
             if now-history[name]['time']>self.reset_cycle:
                 del history[name]
 
+        return False

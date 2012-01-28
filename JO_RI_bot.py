@@ -52,6 +52,10 @@ class JO_RI_bot(BaseBot.BaseBot):
                 command = set([u'削除', u'デリート', u'delete']),
                 no_in_reply = u'in_reply_to入ってないよ！'))
         self.append_reply_hook(AdminFunctions.history_hook(
+                reply_limit = 2,
+                reset_cycle = 20*60,
+                allowed_users = config.BOT_USER))
+        self.append_reply_hook(AdminFunctions.history_hook(
                 reply_limit = config.REPLY_LIMIT,
                 reset_cycle = config.RESET_CYCLE,
                 limit_msg = u'今、ちょっと取り込んでまして・・・'
