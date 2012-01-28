@@ -159,7 +159,7 @@ class Dokusho(object):
                 u'「%s」という本は見つかりませんでした[%s]' % (keyword, bot.get_timestamp()), status)
         elif not item['comment']:
             if item['comment'] is None:
-                text = u'%sはまだ「%s」を未読です。買って読んでみては？' % (
+                text = u'%sは「%s」を未読です。買って読んでみては？' % (
                     self._user_name, item['title'])
             else:
                 text = u'%sは「%s」を読んだけどコメントは未投稿です。買って読んでみては？' % (
