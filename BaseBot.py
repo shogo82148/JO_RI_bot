@@ -167,12 +167,12 @@ class BaseBot(tweepywrap.StreamListener):
                 logger.warning('Keyboard Interrupt')
                 break
             except Exception, e:
-                logger.error(str(e))
+                logger.error(str(e).decode('utf-8'))
 
         try:
             self.on_shutdown()
         except Exception, e:
-            logger.error(str(e))
+            logger.error(str(e).decode('utf-8'))
         
         self._cron.stop()
         logger.info(u'Shutdown')
@@ -220,6 +220,7 @@ class BaseBot(tweepywrap.StreamListener):
     def on_status(self, status):
         """ステータス取得"""
         if self._re_reply_to_me.search(status.text):
+            logger.info('recieved:' + status.text)
             for func in self._reply_hooks:
                 ret = func(self, status)
                 if ret:
