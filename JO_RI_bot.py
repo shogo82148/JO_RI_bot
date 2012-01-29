@@ -13,6 +13,7 @@ from dokusho import Dokusho
 import busNUT
 from Translator import Translator
 import DayOfTheWeek
+from wolframalpha import WolframAlpha
 
 logger = logging.getLogger("BaseBot")
 
@@ -80,6 +81,9 @@ class JO_RI_bot(BaseBot.BaseBot):
         self.append_reply_hook(busNUT.Bus().hook)
         self.append_reply_hook(DayOfTheWeek.hook)
         self.append_reply_hook(JO_RI_bot.nullpo)
+
+        self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator)
+        self.append_reply_hook(self.wolfram.hook)
 
         self.clone_bot = GlobalCloneBot(config.CRAWL_USER)
         self.append_reply_hook(self.clone_bot.reply_hook)
