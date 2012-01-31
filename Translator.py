@@ -7,6 +7,8 @@
 import urllib
 import re
 from xml.sax.saxutils import unescape
+import Misakurago
+
 class Translator(object):
     _base_url = 'http://api.microsofttranslator.com/V2/Http.svc/Translate'
     _re_string = re.compile(r'<string\s+xmlns="[^"]+">(.*)</string>')
@@ -48,6 +50,8 @@ class Translator(object):
         u'韓国': 'ko', u'朝鮮': 'ko',
         u'日本': 'ja', u'和': 'ja',
         u'繁体字中国': 'zh-CHT',
+        u'イカ娘': 'ikamusume',
+        u'みさくら': 'misakura',
         }
     _re_retweet = re.compile(ur'[QR]T\s+@?\w+:\s+(.*)', re.IGNORECASE)
     _re_mention = re.compile(ur'@\w+')
@@ -63,7 +67,14 @@ class Translator(object):
         self._re_translate_text = re.compile(ur'^(.*)を(%s)語?訳' % lang, re.IGNORECASE)
         self._re_translate = re.compile(ur'(%s)語?訳' % lang, re.IGNORECASE)
 
-    def translate(self, text, lang_from=None, lang_to=None):
+    def _translateIka(self, text):
+        if isinstance(text, unicode):
+            text = text.encode('utf-8')
+        url = 'http://ika.koneta.org/api?text=' + urllib.quote_plus(text)
+        res = urllib.urlopen(url).read().decode('utf-8')
+        return res
+
+    def _translateBing(self, text, lang_from=None, lang_to=None):
         arg = {}
         arg['appId'] = self.appId
         if isinstance(text, unicode):
@@ -78,6 +89,20 @@ class Translator(object):
         if not m:
             return None
         return unescape(m.group(1))
+
+    def translate(self, text, lang_from=None, lang_to=None):
+        lang_from = lang_from or self.lang_from
+        lang_to = lang_to or self.lang_to
+        if lang_to=='ikamusume':
+            if lang_from!='ja':
+                text = self._translateBing(text, lang_from, 'ja')
+            return self._translateIka(text)
+        elif lang_to=='misakura':
+            if lang_from!='ja':
+                text = self._translateBing(text, lang_from, 'ja')
+            return Misakurago.toMisakurago(text)
+        else:
+            return self._translateBing(text, lang_from, lang_to)
 
     def hook(self, bot, status):
         m = self._re_translate_text.search(status.text)
