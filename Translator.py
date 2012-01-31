@@ -7,6 +7,8 @@
 import urllib
 import re
 from xml.sax.saxutils import unescape
+import Misakurago
+
 class Translator(object):
     _base_url = 'http://api.microsofttranslator.com/V2/Http.svc/Translate'
     _re_string = re.compile(r'<string\s+xmlns="[^"]+">(.*)</string>')
@@ -49,6 +51,7 @@ class Translator(object):
         u'日本': 'ja', u'和': 'ja',
         u'繁体字中国': 'zh-CHT',
         u'イカ娘': 'ikamusume',
+        u'みさくら': 'misakura',
         }
     _re_retweet = re.compile(ur'[QR]T\s+@?\w+:\s+(.*)', re.IGNORECASE)
     _re_mention = re.compile(ur'@\w+')
@@ -94,6 +97,10 @@ class Translator(object):
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
             return self._translateIka(text)
+        elif lang_to=='misakura':
+            if lang_from!='ja':
+                text = self._translateBing(text, lang_from, 'ja')
+            return Misakurago.toMisakurago(text)
         else:
             return self._translateBing(text, lang_from, lang_to)
 
