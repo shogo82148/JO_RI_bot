@@ -110,11 +110,17 @@ class Translator(object):
     def _detectMisakura(self, text):
         return not self._re_misakura.search(text) is None
 
+    _re_ondulish = re.compile(u'[ｱ-ﾝ]{5,}')
+    def _detectOndulish(self, text):
+        return not self._re_ondulish.search(text) in None
+
     def detect(self, text):
         if self._detectIka(text):
             return 'ikamusume'
         if self._detectMisakura(text):
             return 'misakura'
+        if self._detectOndulish(text):
+            return 'ondulish'
         arg = {}
         arg['appId'] = self.appId
         if isinstance(text, unicode):
@@ -156,6 +162,7 @@ class Translator(object):
         m = self._re_translate.search(status.text)
         if m:
             lang = m.group(1)
+            text = u'翻訳する文章を教えてください'
             m = self._re_retweet.search(status.text)
             if m:
                 #RTされた文章を翻訳
@@ -165,7 +172,10 @@ class Translator(object):
                 reply_to_status = bot.api.get_status(status.in_reply_to_status_id)
                 text = reply_to_status.text
             text = self._re_mention.sub('', text)
-            bot.reply_to(self.translate(text, None, self._lang_dict.get(lang, lang)), status)
+            bot.reply_to(u'[%s語訳]%s [%s]' % (
+                    self._inverse_lang_dict.get(lang, lang),
+                    self.translate(text, None, self._lang_dict.get(lang, lang)),
+                    bot.get_timestamp()), status)
             return True
 
         m = self._re_detect.search(status.text)
