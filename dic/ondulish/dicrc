@@ -1,0 +1,11 @@
+cost-factor = 800
+bos-feature = BOS/EOS,*,*,*,*,*,*
+eval-size = 1
+unk-eval-size = 1
+config-charset = UTF-8
+
+output-format-type=yomi
+
+node-format-yomi = %f[0]
+unk-format-yomi = %M
+eos-format-yomi  = \n

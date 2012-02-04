@@ -4,6 +4,7 @@
 import tweepy
 import tweepywrap
 import time
+import httplib
 import re
 import codecs
 import sys
@@ -48,7 +49,16 @@ def StreamProcess(queue, consumer_key, consumer_secret, access_key, access_secre
     auth.set_access_token(access_key, access_secret)
     stream = tweepy.Stream(auth, BotStream(queue))
     logger.info('User Stream Starting...')
-    stream.userstream(async=False)
+    while True:
+        try:
+            stream.userstream(async=False)
+        except httplib.HTTPException:
+            logger.error(str(e).encode('utf-8'))
+            time.sleep(10)
+            logger.info('Retry to start user stream...')
+        except Exception, e:
+            logger.error(str(e).encode('utf-8'))
+            break
 
 class BotStream(tweepywrap.StreamListener):
     """ユーザーストリームのリスナ"""

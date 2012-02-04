@@ -66,7 +66,7 @@ class CloneBot(object):
                     columns.append(remove_tab(reply_to.text))
                     columns.append(str(reply_to.created_at))
                     columns.append(str(reply_to.id))
-                    new_statuses.append('\t'.join(columns))
+                new_statuses.append('\t'.join(columns))
 
                 #DBへ登録
                 text = db.extract_text(status.text)
@@ -74,8 +74,8 @@ class CloneBot(object):
                 if reply_to:
                     logger.debug('>%s: %s' % (reply_to.id, reply_to.text))
                 db.add_text(text)
-                db.since_id = str( max(int(db.since_id), int(status.id)) )
+                db.since_id = str( max(int(db.since_id or 0), int(status.id)) )
                 
-            with open('crawl.tsv', 'a') as f:
-                for line in reversed(new_statuses):
-                    f.write(line.encode('utf-8')+'\n')
+        with open(self._log_file, 'a') as f:
+            for line in reversed(new_statuses):
+                f.write(line.encode('utf-8')+'\n')
