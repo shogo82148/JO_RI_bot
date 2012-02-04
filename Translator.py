@@ -8,6 +8,7 @@ import urllib
 import re
 from xml.sax.saxutils import unescape
 import Misakurago
+import OndulishTranslator
 
 class Translator(object):
     _base_url = 'http://api.microsofttranslator.com/V2/Http.svc/'
@@ -52,6 +53,7 @@ class Translator(object):
         u'繁体字中国': 'zh-CHT',
         u'イカ娘': 'ikamusume',
         u'みさくら': 'misakura',
+        u'オンドゥル': 'ondulish',
         }
     _re_retweet = re.compile(ur'[QR]T\s+@?\w+:?\s+(.*)', re.IGNORECASE)
     _re_mention = re.compile(ur'@\w+')
@@ -136,6 +138,10 @@ class Translator(object):
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
             return Misakurago.toMisakurago(text)
+        elif lang_to=='ondulish':
+            if lang_from!='ja':
+                text = self._translateBing(text, lang_from, 'ja')
+            return OndulishTranslator.OndulishTranslator().translate(text)
         else:
             return self._translateBing(text, lang_from, lang_to)
 
