@@ -9,6 +9,7 @@ import re
 from xml.sax.saxutils import unescape
 import Misakurago
 import OndulishTranslator
+import Lou
 
 class Translator(object):
     _base_url = 'http://api.microsofttranslator.com/V2/Http.svc/'
@@ -54,6 +55,8 @@ class Translator(object):
         u'イカ娘': 'ikamusume',
         u'みさくら': 'misakura',
         u'オンドゥル': 'ondulish',
+        u'ルー': 'lou',
+        u'オンドゥルー': 'ondulishlou',
         }
     _re_retweet = re.compile(ur'[QR]T\s+@?\w+:?\s+(.*)', re.IGNORECASE)
     _re_mention = re.compile(ur'@\w+')
@@ -147,6 +150,15 @@ class Translator(object):
         elif lang_to=='ondulish':
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
+            return OndulishTranslator.OndulishTranslator().translate(text)
+        elif lang_to=='lou':
+            if lang_from!='ja':
+                text = self._translateBing(text, lang_from, 'ja')
+            return Lou.Lou().translate(text)
+        elif lang_to=='ondulishlou':
+            if lang_from!='ja':
+                text = self._translateBing(text, lang_from, 'ja')
+            text = Lou.Lou().translate(text)
             return OndulishTranslator.OndulishTranslator().translate(text)
         else:
             return self._translateBing(text, lang_from, lang_to)
