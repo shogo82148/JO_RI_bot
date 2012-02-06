@@ -127,6 +127,11 @@ class BaseBot(tweepywrap.StreamListener):
                           default='',
                           help="Test reply to the bot",
                           )
+        parser.add_option('-c', '--cron',
+                          dest='cron',
+                          default='',
+                          help="Test cron tasks",
+                          )
         parser.add_option('-d', '--debug',
                           dest='debug',
                           action='store_true',
@@ -145,6 +150,8 @@ class BaseBot(tweepywrap.StreamListener):
         self.setup_logger(options)
         if options.reply:
             self.test_reply(options.reply)
+        elif options.cron:
+            self.test_cron(options.cron)
         else:
             self.start()
 
@@ -201,6 +208,17 @@ class BaseBot(tweepywrap.StreamListener):
         status.author = Mock()
         status.author.screen_name = 'test_user'
         self.on_status(status)
+
+    def test_cron(self, cron_id):
+        self.api = APIMock()
+        func = self._cron_funcs.get(cron_id)
+        if func:
+            func()
+        else:
+            print u'Cron task not found'
+            print u'Cron tasks:'
+            for key in self._cron_funcs.iterkeys():
+                print "\t" + key
 
     def on_start(self):
         pass
