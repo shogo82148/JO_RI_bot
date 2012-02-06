@@ -10,6 +10,9 @@ from xml.sax.saxutils import unescape
 import Misakurago
 import OndulishTranslator
 import Lou
+import logging
+
+logger = logging.getLogger("BaseBot")
 
 class Translator(object):
     _base_url = 'http://api.microsofttranslator.com/V2/Http.svc/'
@@ -82,6 +85,7 @@ class Translator(object):
         self._inverse_lang_dict = inverse_lang_dict
 
     def _translateIka(self, text):
+        logger.debug(u'Translating with Ika')
         if isinstance(text, unicode):
             text = text.encode('utf-8')
         url = 'http://ika.koneta.org/api?text=' + urllib.quote_plus(text)
@@ -89,8 +93,11 @@ class Translator(object):
         return res
 
     def _translateBing(self, text, lang_from=None, lang_to=None):
+        logger.debug(u'Translating with Bing')
+        logger.debug(u'Text: %s' % text)
         arg = {}
         arg['appId'] = self.appId
+        text = text.replace('\n', '').replace('\r', '')
         if isinstance(text, unicode):
             text = text.encode('utf-8')
         arg['text'] = text
@@ -102,7 +109,10 @@ class Translator(object):
         m = self._re_string.match(res)
         if not m:
             return None
-        return unescape(m.group(1))
+
+        text = unescape(m.group(1))
+        logger.debug(u'Result: %s' % text)
+        return text
 
     _re_ika = re.compile(u'イカ|ゲソ')
     def _detectIka(self, text):
@@ -115,7 +125,7 @@ class Translator(object):
 
     _re_ondulish = re.compile(u'[ｱ-ﾝ]{5,}')
     def _detectOndulish(self, text):
-        return not self._re_ondulish.search(text) in None
+        return not self._re_ondulish.search(text) is None
 
     def detect(self, text):
         if self._detectIka(text):
