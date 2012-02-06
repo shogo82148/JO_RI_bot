@@ -203,7 +203,10 @@ class Translator(object):
                 text = reply_to_status.text
             text = self._re_mention.sub('', text)
             lang = self.detect(text)
-            bot.reply_to(u'それは%s語だね [%s]' % (self._inverse_lang_dict.get(lang, lang), bot.get_timestamp()), status)
+            if lang:
+                bot.reply_to(u'それは%s語だね [%s]' % (self._inverse_lang_dict.get(lang, lang), bot.get_timestamp()), status)
+            else:
+                bot.reply_to(u'ワカラナイ [%s]' % bot.get_timestamp(), status)
             return True
 
         return False

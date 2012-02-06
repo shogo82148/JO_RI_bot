@@ -164,6 +164,11 @@ class GakuShoku(object):
             if dish:
                 selections.append(dish)
 
+        selections.append(u'油そば')
+        selections.append(u'油そば')
+        selections.append(u'油そば')
+        selections.append(u'油そば')
+
         #適当に推薦
         return u'%sの%sのおすすめは、%sです' % (
             date, dish_time,
@@ -176,6 +181,44 @@ class GakuShoku(object):
             return True
         else:
             return False
+    
+    def tweet_menu(self, bot, is_dinner=None):
+        """ メニューをつぶやく """
+        dish_time = (u'夕食' if is_dinner else u'昼食')
+        date = datetime.datetime.today()
+        menu = self.get_menu(date)
+        if not menu:
+            return
+        head = u'【学食メニュー】'
+        tail = u'#技大第一食堂'
+
+        bot.update_status(u'%s 本日の%sの学食メニューをお知らせします！ %s' % (head, dish_time, tail))
+
+        #A定食
+        for dish_type in [u'a', u'b', u'c', u'日替わりa']:
+            dish1 = menu.get(dish_time + dish_type + u'定食1', None)
+            dish2 = menu.get(dish_time + dish_type + u'定食2', None)
+            if dish1:
+                if dish2:
+                    bot.update_status(u'%s %s定食:%sと%s %s' % (head, dish_type.upper(), dish1, dish2, tail))
+                else:
+                    bot.update_status(u'%s %s定食:%s %s' % (head, dish_type.upper(), dish1, tail))
+
+        #セットメニュー
+        dish = menu.get(dish_time + u'セット', None)
+        if dish:
+            bot.update_status(u'%s セット:%s %s' % (head, dish, tail))
+
+        #単品メニュー
+        dishes = []
+        for i in range(1,6):
+            dish = menu.get(dish_time + u'単品%d' % i, None)
+            if dish:
+                dishes.append(dish)
+        if len(dishes)>0:
+            bot.update_status(u'%s 単品:%s %s' % (head, ','.join(dishes), tail))
+
+        bot.update_status(head + u'お残しは許しまへんでー！' + tail)
 
 def main():    
     import config
