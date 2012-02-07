@@ -66,13 +66,16 @@ class WolframAlpha(object):
         logger.info(u'Answer:' + answer)
         
         if translate_flag and self.translator:
-            answer = self.translator.translate(answer, 'en', 'ja')
-            logger.info(u'Translated:' + answer)
-        
+            answerja = self.translator.translate(answer, 'en', 'ja')
+            if answerja:
+                logger.info(u'Translated:' + answer)
+                answer = answerja
+            else:
+                logger.error(u'Translate Failed')
         limit = 140 - len('@%s ' % status.author.screen_name)
         limit -= 21 #For URL
         if len(answer)>limit:
-            answer = answer[0:limit]
+            answer = answer[0:limit-1] + u'…'
         answer += ' http://www.wolframalpha.com/input/?i=' + urllib.quote_plus(query)
         bot.reply_to(answer, status, cut=False)
         return True
