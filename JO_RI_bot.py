@@ -14,7 +14,7 @@ import busNUT
 from Translator import Translator
 import DayOfTheWeek
 from wolframalpha import WolframAlpha
-
+import DateTimeHooks
 logger = logging.getLogger("BaseBot")
 
 class GlobalCloneBot(CloneBot):
@@ -89,6 +89,7 @@ class JO_RI_bot(BaseBot.BaseBot):
 
         self.append_reply_hook(busNUT.Bus().hook)
         self.append_reply_hook(DayOfTheWeek.hook)
+        self.append_reply_hook(DateTimeHooks.hook)
         self.append_reply_hook(JO_RI_bot.nullpo)
 
         self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator)
