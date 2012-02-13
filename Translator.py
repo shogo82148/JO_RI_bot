@@ -9,7 +9,11 @@ import re
 from xml.sax.saxutils import unescape
 import Misakurago
 import OndulishTranslator
+import GrongishTranslator
 import Lou
+import logging
+
+logger = logging.getLogger("BaseBot")
 
 class Translator(object):
     _base_url = 'http://api.microsofttranslator.com/V2/Http.svc/'
@@ -57,6 +61,7 @@ class Translator(object):
         u'オンドゥル': 'ondulish',
         u'ルー': 'lou',
         u'オンドゥルー': 'ondulishlou',
+        u'グロンギ': 'grongish',
         }
     _re_retweet = re.compile(ur'[QR]T\s+@?\w+:?\s+(.*)', re.IGNORECASE)
     _re_mention = re.compile(ur'@\w+')
@@ -82,6 +87,7 @@ class Translator(object):
         self._inverse_lang_dict = inverse_lang_dict
 
     def _translateIka(self, text):
+        logger.debug(u'Translating with Ika')
         if isinstance(text, unicode):
             text = text.encode('utf-8')
         url = 'http://ika.koneta.org/api?text=' + urllib.quote_plus(text)
@@ -89,8 +95,11 @@ class Translator(object):
         return res
 
     def _translateBing(self, text, lang_from=None, lang_to=None):
+        logger.debug(u'Translating with Bing')
+        logger.debug(u'Text: %s' % text)
         arg = {}
         arg['appId'] = self.appId
+        text = text.replace('\n', '').replace('\r', '')
         if isinstance(text, unicode):
             text = text.encode('utf-8')
         arg['text'] = text
@@ -102,7 +111,10 @@ class Translator(object):
         m = self._re_string.match(res)
         if not m:
             return None
-        return unescape(m.group(1))
+
+        text = unescape(m.group(1))
+        logger.debug(u'Result: %s' % text)
+        return text
 
     _re_ika = re.compile(u'イカ|ゲソ')
     def _detectIka(self, text):
@@ -115,7 +127,13 @@ class Translator(object):
 
     _re_ondulish = re.compile(u'[ｱ-ﾝ]{5,}')
     def _detectOndulish(self, text):
-        return not self._re_ondulish.search(text) in None
+        return not self._re_ondulish.search(text) is None
+
+    def _detectGrangish(self, text):
+        d = set(u'ガギグゲゴザジズゼゾダヂヅデドバビブベボラリルレロサシスセソマミムメモパジャュョン')
+        all_length = len(text)
+        d_length = len([ch for ch in text if ch in d])
+        return float(d_length)/all_length>=0.7
 
     def detect(self, text):
         if self._detectIka(text):
@@ -124,6 +142,8 @@ class Translator(object):
             return 'misakura'
         if self._detectOndulish(text):
             return 'ondulish'
+        if self._detectGrangish(text):
+            return 'grangish'
         arg = {}
         arg['appId'] = self.appId
         if isinstance(text, unicode):
@@ -139,6 +159,8 @@ class Translator(object):
     def translate(self, text, lang_from=None, lang_to=None):
         lang_from = lang_from or self.lang_from
         lang_to = lang_to or self.lang_to
+        if lang_from=='grangish' or self._detectGrangish(text):
+            text = GrongishTranslator.GrongishTranslator(dic='dic/Grongish').grtranslate(text)
         if lang_to=='ikamusume':
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
@@ -160,6 +182,10 @@ class Translator(object):
                 text = self._translateBing(text, lang_from, 'ja')
             text = Lou.Lou().translate(text)
             return OndulishTranslator.OndulishTranslator().translate(text)
+        elif lang_to=='grongish':
+            if lang_from!='ja':
+                text = self._translateBing(text, lang_from, 'ja')
+            return GrongishTranslator.GrongishTranslator().translate(text)
         else:
             return self._translateBing(text, lang_from, lang_to)
 

@@ -13,6 +13,7 @@ import crondaemon
 import logging
 import logging.handlers
 from multiprocessing import Process, Lock, Queue
+import traceback
 
 logger = logging.getLogger("BaseBot")
 
@@ -185,6 +186,7 @@ class BaseBot(tweepywrap.StreamListener):
                 break
             except Exception, e:
                 logger.error(str(e).decode('utf-8'))
+                logger.error(traceback.format_exc())
 
         try:
             self.on_shutdown()
