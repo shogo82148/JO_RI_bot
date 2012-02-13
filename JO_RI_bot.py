@@ -47,11 +47,13 @@ class JO_RI_bot(BaseBot.BaseBot):
                                         config.ACCESS_SECRET)
         self.append_reply_hook(AdminFunctions.shutdown_hook(
                 allowed_users = config.ADMIN_USER,
-                command = set([u'バルス', u'シャットダウン', u'shutdown', u'halt', u':q!', u'c-x c-c'])))
+                command = set([u'バルス', u'シャットダウン', u'shutdown', u'halt', u':q!', u'c-x c-c'])),
+            priority=BaseBot.PRIORITY_ADMIN)
         self.append_reply_hook(AdminFunctions.delete_hook(
                 allowed_users = config.ADMIN_USER,
                 command = set([u'削除', u'デリート', u'delete']),
-                no_in_reply = u'in_reply_to入ってないよ！'))
+                no_in_reply = u'in_reply_to入ってないよ！'),
+            priority=BaseBot.PRIORITY_ADMIN)
         self.append_reply_hook(AdminFunctions.history_hook(
                 reply_limit = 2,
                 reset_cycle = 20*60,

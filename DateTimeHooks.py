@@ -11,6 +11,7 @@ import unicodedata
 import random
 
 _re_wakeup = re.compile(ur'[経た]ったら(教えて|起こして)')
+_re_cancel = re.compile(ur'キャンセル|いいや')
 _re_weeks = re.compile(ur'(\d+)週間')
 _re_days = re.compile(ur'(\d+)日')
 _re_hours = re.compile(ur'(\d+)時間')
@@ -36,9 +37,20 @@ def hook(bot, status):
     m = _re_wakeup.search(text)
     if not m:
         return False
+    name = 'wakeup-' + str(status.id)
 
-    def func(bot):
+    def wake(bot):
         bot.reply_to(u'時間だぞー！ [%s]' % bot.get_timestamp(), status)
+
+    def cancel_hook(bot, new_status):
+        m = _re_cancel.search(new_status.text)
+        if not m:
+            return False
+        if new_status.author.id!=status.author.id:
+            return False
+        bot.reply_to(u'はーい、またいつでもどうぞー [%s]' % bot.get_timestamp(), new_status)
+        bot.delete_reply_hook(name)
+        return True
 
     dt = str2timedelta(text)
     if dt.days==0 and dt.seconds==0:
@@ -47,12 +59,16 @@ def hook(bot, status):
                 u'わけがわからないよ',
                 u'400 Bad Request'])
         bot.reply_to(ng_message + u" [%s]" % bot.get_timestamp(), status)
-    else:
-        bot.append_cron(datetime.datetime.now()+dt, func, name = 'wakeup-' + str(status.id))
-        
+    else:        
         ok_message = random.choice([
                 u'おｋ',
                 u'いいよー',
                 u'わかったー'])
-        bot.reply_to(ok_message + " [%s]" % bot.get_timestamp(), status)
+        ok_status = bot.reply_to(ok_message + " [%s]" % bot.get_timestamp(), status)
+
+        bot.append_reply_hook(cancel_hook,
+                              name = name,
+                              in_reply_to = ok_status.id,
+                              time_out = dt,
+                              on_time_out = wake)
     return True
