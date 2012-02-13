@@ -9,6 +9,7 @@ import re
 from xml.sax.saxutils import unescape
 import Misakurago
 import OndulishTranslator
+import GrongishTranslator
 import Lou
 import logging
 
@@ -60,6 +61,7 @@ class Translator(object):
         u'オンドゥル': 'ondulish',
         u'ルー': 'lou',
         u'オンドゥルー': 'ondulishlou',
+        u'グロンギ': 'grongish',
         }
     _re_retweet = re.compile(ur'[QR]T\s+@?\w+:?\s+(.*)', re.IGNORECASE)
     _re_mention = re.compile(ur'@\w+')
@@ -127,6 +129,12 @@ class Translator(object):
     def _detectOndulish(self, text):
         return not self._re_ondulish.search(text) is None
 
+    def _detectGrangish(self, text):
+        d = set(u'ガギグゲゴザジズゼゾダヂヅデドバビブベボラリルレロサシスセソマミムメモパジャュョン')
+        all_length = len(text)
+        d_length = len([ch for ch in text if ch in d])
+        return float(d_length)/all_length>=0.7
+
     def detect(self, text):
         if self._detectIka(text):
             return 'ikamusume'
@@ -134,6 +142,8 @@ class Translator(object):
             return 'misakura'
         if self._detectOndulish(text):
             return 'ondulish'
+        if self._detectGrangish(text):
+            return 'grangish'
         arg = {}
         arg['appId'] = self.appId
         if isinstance(text, unicode):
@@ -149,6 +159,8 @@ class Translator(object):
     def translate(self, text, lang_from=None, lang_to=None):
         lang_from = lang_from or self.lang_from
         lang_to = lang_to or self.lang_to
+        if lang_from=='grangish' or self._detectGrangish(text):
+            text = GrongishTranslator.GrongishTranslator(dic='dic/Grongish').grtranslate(text)
         if lang_to=='ikamusume':
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
@@ -170,6 +182,10 @@ class Translator(object):
                 text = self._translateBing(text, lang_from, 'ja')
             text = Lou.Lou().translate(text)
             return OndulishTranslator.OndulishTranslator().translate(text)
+        elif lang_to=='grongish':
+            if lang_from!='ja':
+                text = self._translateBing(text, lang_from, 'ja')
+            return GrongishTranslator.GrongishTranslator().translate(text)
         else:
             return self._translateBing(text, lang_from, lang_to)
 
