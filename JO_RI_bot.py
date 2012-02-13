@@ -107,7 +107,8 @@ class JO_RI_bot(BaseBot.BaseBot):
     def on_start(self):
         self.clone_bot.crawl(self)
         self.update_status(random.choice([
-                    u'【お知らせ】颯爽登場、銀河美少年！ 綺羅星☆[%s]',
+                    u'【お知らせ】アプリボワゼ！颯爽登場！銀河美少年タウバーン！ [%s]',
+                    u'【お知らせ】（<ゝω・）綺羅星☆[%s]',
                     u'【お知らせ】ほろーん[%s]',
                     u'【お知らせ】起動なう[%s]',
                     ]) % self.get_timestamp())
