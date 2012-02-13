@@ -228,9 +228,12 @@ class BaseBot(tweepywrap.StreamListener):
     def on_shutdown(self):
         pass
 
-    def append_reply_hook(self, func):
+    def append_reply_hook(self, func, name=None, in_reply_to=None):
         """リプライフックを追加する"""
         self._reply_hooks.append(func)
+
+    def delete_reply_hook(self, name):
+        return name
 
     def append_cron(self, crontime, func, args=(), kargs={}, name=None):
         """定期実行タスクを追加する"""
@@ -240,12 +243,20 @@ class BaseBot(tweepywrap.StreamListener):
         def wrap():
             logger.info(u'Running ' + cron_id)
             func(self, *args, **kargs)
+            if not self._cron.hascron(cron_id):
+                del self._cron_funcs[cron_id]
 
         def put():
             self._queue.put(('cron', cron_id))
 
         self._cron_funcs[cron_id] = wrap
-        self._cron.append(crontime, put)
+        self._cron.append(crontime, put, name=cron_id)
+        return cron_id
+
+    def delete_cron(self, name):
+        self._cron.delete(name)
+        del self._cron_funcs[name]
+        return name
 
     def on_status(self, status):
         """ステータス取得"""
