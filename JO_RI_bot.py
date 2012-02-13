@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
+import re
 import config
 import BaseBot
 import AdminFunctions
@@ -109,7 +110,8 @@ class JO_RI_bot(BaseBot.BaseBot):
     def on_start(self):
         self.clone_bot.crawl(self)
         self.update_status(random.choice([
-                    u'【お知らせ】颯爽登場、銀河美少年！ 綺羅星☆[%s]',
+                    u'【お知らせ】アプリボワゼ！颯爽登場！銀河美少年タウバーン！ [%s]',
+                    u'【お知らせ】（<ゝω・）綺羅星☆[%s]',
                     u'【お知らせ】ほろーん[%s]',
                     u'【お知らせ】起動なう[%s]',
                     ]) % self.get_timestamp())
@@ -142,6 +144,20 @@ class JO_RI_bot(BaseBot.BaseBot):
         bot.reply_to(u'ｶﾞｯ [%s]' % bot.get_timestamp(), status)
         return True
 
+    def on_follow(self, target, source):
+        if source.screen_name==self._name:
+            return
+        text = u'@%s フォローありがとう！JO_RI_botは超高性能なボットです。説明書を読んでリプライを送ってみて！ https://github.com/shogo82148/JO_RI_bot/wiki 相互フォローを希望する人はこのツイートをお気に入りに登録して！[%s]' % (source.screen_name, self.get_timestamp())
+        self.update_status(text)
+
+    re_follow_message = re.compile(ur'@(\w+)\s+フォローありがとう！')
+    def on_favorite(self, target, source):
+        m = self.re_follow_message.search(target.text)
+        if not m:
+            return
+        if m.group(1)!=source.screen_name:
+            return
+        self.api.create_friendship(source.id)
 
 if __name__=='__main__':
     bot = JO_RI_bot()
