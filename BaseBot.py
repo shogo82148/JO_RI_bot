@@ -43,6 +43,31 @@ class APIMock(object):
                 print '\t%s=%s' % (name, self.__to_string(arg))
             print
         return func
+
+    def update_status(self, status, in_reply_to_status_id=None, lat=None, long=None, source=None, place_id=None):
+        class Mock(object):
+            pass
+        print 'update_status:'
+        print '\tstatus=%s' % self.__to_string(status)
+        if in_reply_to_status_id:
+            print '\tin_reply_to_status_id=%s' % self.__to_string(in_reply_to_status_id)
+        if lat:
+            print '\tlat=%s' % self.__to_string(lat)
+        if long:
+            print '\tlong=%s' % self.__to_string(long)
+        if source:
+            print '\tlat=%s' % self.__to_string(source)
+        if place_id:
+            print '\tlat=%s' % self.__to_string(place_id)
+        status = Mock()
+        status.id = 2345678900
+        status.text = status
+        status.in_reply_to_status_id = in_reply_to_status_id
+        status.created_at = datetime.datetime.now()
+        status.author = Mock()
+        status.author.screen_name = 'test_user'
+        return status
+
     def rate_limit_status(self):
         return {"reset_time_in_seconds": 1277485629,
                 "remaining_hits": 350,
