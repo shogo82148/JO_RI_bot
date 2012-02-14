@@ -93,10 +93,11 @@ class JO_RI_bot(BaseBot.BaseBot):
         self.append_reply_hook(busNUT.Bus().hook)
         self.append_reply_hook(DayOfTheWeek.hook)
         self.append_reply_hook(DateTimeHooks.hook)
-        self.append_reply_hook(JO_RI_bot.nullpo)
 
         self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator)
         self.append_reply_hook(self.wolfram.hook)
+
+        self.append_reply_hook(JO_RI_bot.typical_response)
 
         self.clone_bot = GlobalCloneBot(config.CRAWL_USER)
         self.append_reply_hook(self.clone_bot.reply_hook)
@@ -137,12 +138,38 @@ class JO_RI_bot(BaseBot.BaseBot):
                       status)
         return True
 
-    def nullpo(self, status):
-        """ぬるぽ→ガッ"""
-        if status.text.find(u'ぬるぽ')<0:
-            return False
-        bot.reply_to(u'ｶﾞｯ [%s]' % bot.get_timestamp(), status)
-        return True
+    def typical_response(self, status):
+        """決まりきった応答"""
+
+        #ぬるぽ→ｶﾞｯ
+        if status.text.find(u'ぬるぽ')>=0:
+            bot.reply_to(u'ｶﾞｯ [%s]' % bot.get_timestamp(), status)
+            return True
+
+        #アプリボワゼ
+        if status.text.find(u'アプリボワゼ')>=0:
+            bot.reply_to(u'颯爽登場！！銀河美少年タウバーン！ [%s]' % bot.get_timestamp(), status)
+            return True
+        
+        #颯爽登場！
+        if status.text.find(u'颯爽登場')>=0:
+            bot.reply_to(u'銀河美少年！タウバーン！ [%s]' % bot.get_timestamp(), status)
+            return True
+
+        #綺羅星→綺羅星
+        if status.text.find(u'綺羅星')>=0:
+            bot.reply_to(u'（<ゝω・）綺羅星☆ [%s]' % bot.get_timestamp(), status)
+            return True
+        
+        #生存！→戦略！
+        if status.text.find(u'生存')>=0 or status.text.find(u'せいぞん')>=0:
+            if status.text.find(u'戦略')>=0 or status.text.find(u'せんりゃく')>=0:
+                bot.reply_to(u'生存戦略、しましょうか [%s]' % bot.get_timestamp(), status)
+            else:
+                bot.reply_to(u'せんりゃくうううう！！！ [%s]' % bot.get_timestamp(), status)
+            return True
+        
+        return False
 
     def on_follow(self, target, source):
         if source.screen_name==self._name:
