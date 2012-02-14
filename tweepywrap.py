@@ -8,8 +8,8 @@ from tweepy import Status
 
 class StreamListener(tweepy.StreamListener):
     """ tweepyのStreamListenerのラッパ """
-    def __init__(self):
-        self.__api = tweepy.API()
+    def __init__(self, api=None):
+        self.__api = api or tweepy.API()
 
     def on_data(self, data):
         if not data:
