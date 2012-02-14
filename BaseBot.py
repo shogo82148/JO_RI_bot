@@ -17,9 +17,14 @@ import traceback
 
 logger = logging.getLogger("BaseBot")
 
+PRIORITY_ADMIN = 0
+PRIORITY_IN_REPLY_TO = 1
+PRIORITY_NORMAL = 2
+
 class BotShutdown(Exception):
     """ボットをシャットダウンしたいときに投げる例外"""
     pass
+
 class APIMock(object):
     def __to_string(self, obj):
         if isinstance(obj, str):
@@ -38,6 +43,31 @@ class APIMock(object):
                 print '\t%s=%s' % (name, self.__to_string(arg))
             print
         return func
+
+    def update_status(self, status, in_reply_to_status_id=None, lat=None, long=None, source=None, place_id=None):
+        class Mock(object):
+            pass
+        print 'update_status:'
+        print '\tstatus=%s' % self.__to_string(status)
+        if in_reply_to_status_id:
+            print '\tin_reply_to_status_id=%s' % self.__to_string(in_reply_to_status_id)
+        if lat:
+            print '\tlat=%s' % self.__to_string(lat)
+        if long:
+            print '\tlong=%s' % self.__to_string(long)
+        if source:
+            print '\tlat=%s' % self.__to_string(source)
+        if place_id:
+            print '\tlat=%s' % self.__to_string(place_id)
+        status = Mock()
+        status.id = 2345678900
+        status.text = status
+        status.in_reply_to_status_id = in_reply_to_status_id
+        status.created_at = datetime.datetime.now()
+        status.author = Mock()
+        status.author.screen_name = 'test_user'
+        return status
+
     def rate_limit_status(self):
         return {"reset_time_in_seconds": 1277485629,
                 "remaining_hits": 350,
@@ -53,7 +83,7 @@ def StreamProcess(queue, consumer_key, consumer_secret, access_key, access_secre
     while True:
         try:
             stream.userstream(async=False)
-        except httplib.HTTPException:
+        except httplib.HTTPException, e:
             logger.error(str(e).encode('utf-8'))
             time.sleep(10)
             logger.info('Retry to start user stream...')
@@ -73,15 +103,16 @@ class BotStream(tweepywrap.StreamListener):
         
 class BaseBot(tweepywrap.StreamListener):
     def __init__(self, consumer_key, consumer_secret, access_key, access_secret):
-        super(BaseBot, self).__init__()
+        auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+        auth.set_access_token(access_key, access_secret)
+        api = tweepy.API(auth, retry_count=10, retry_delay=1)
+        super(BaseBot, self).__init__(api=api)
         #API設定
         self._consumer_key = consumer_key
         self._consumer_secret = consumer_secret
         self._access_key = access_key
         self._access_secret = access_secret
-        self.auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        self.auth.set_access_token(access_key, access_secret)
-        self.api = tweepy.API(self.auth, retry_count=10, retry_delay=1)
+        self.api = api
 
         #アカウント設定の読み込み
         self._name = self.api.me().screen_name
@@ -91,6 +122,7 @@ class BaseBot(tweepywrap.StreamListener):
         self._queue = Queue()
         self._cron = crondaemon.crondaemon()
         self._reply_hooks = []
+        self._reply_hook_id = 0
         self._cron_funcs = {}
         self._cron_id = 0
 
@@ -228,11 +260,32 @@ class BaseBot(tweepywrap.StreamListener):
     def on_shutdown(self):
         pass
 
-    def append_reply_hook(self, func, name=None, in_reply_to=None):
+    def append_reply_hook(self, func, priority=None, name=None, in_reply_to=None, time_out=None, on_time_out=None):
         """リプライフックを追加する"""
-        self._reply_hooks.append(func)
+        reply_hook_id = name or (u'reply-hook-' + str(self._reply_hook_id))
+        self._reply_hook_id += 1
+
+        def cron_time_out(bot):
+            bot.delete_reply_hook(reply_hook_id)
+            if on_time_out:
+                on_time_out(bot)
+        if time_out:
+            if priority is None:
+                priority = PRIORITY_IN_REPLY_TO
+            if isinstance(time_out, datetime.timedelta):
+                dt = time_out
+            else:
+                dt = datetime.timedelta(seconds=timeout)
+            self.append_cron(datetime.datetime.now()+dt, cron_time_out, name=u'timeout-'+reply_hook_id)
+        if priority is None:
+            priority = PRIORITY_NORMAL
+        self._reply_hooks.append([priority, reply_hook_id, func, in_reply_to])
+        self._reply_hooks.sort(key=lambda x: x[0])
+        return reply_hook_id
 
     def delete_reply_hook(self, name):
+        self.delete_cron(u'timeout-'+name)
+        self._reply_hooks = [h for h in self._reply_hooks if h[1]!=name]
         return name
 
     def append_cron(self, crontime, func, args=(), kargs={}, name=None):
@@ -244,7 +297,7 @@ class BaseBot(tweepywrap.StreamListener):
             logger.info(u'Running ' + cron_id)
             func(self, *args, **kargs)
             if not self._cron.hascron(cron_id):
-                del self._cron_funcs[cron_id]
+                self.delete_cron(cron_id)
 
         def put():
             self._queue.put(('cron', cron_id))
@@ -255,14 +308,19 @@ class BaseBot(tweepywrap.StreamListener):
 
     def delete_cron(self, name):
         self._cron.delete(name)
-        del self._cron_funcs[name]
+        if name in self._cron_funcs:
+            del self._cron_funcs[name]
+        else:
+            return None
         return name
 
     def on_status(self, status):
         """ステータス取得"""
         if self._re_reply_to_me.search(status.text):
             logger.info('recieved:' + status.text)
-            for func in self._reply_hooks:
+            for priority, name, func, in_reply_to in self._reply_hooks:
+                if in_reply_to and in_reply_to!=status.in_reply_to_status_id:
+                    continue
                 ret = func(self, status)
                 if ret:
                     break
@@ -272,15 +330,15 @@ class BaseBot(tweepywrap.StreamListener):
 
     def update_status(self, status, *args, **kargs):
         logger.info(u'update:' + status)
-        self.api.update_status(status, *args, **kargs)
+        return self.api.update_status(status, *args, **kargs)
 
     def destroy_status(self, status_id):
         logger.info(u'delete:' + status_id)
-        self.api.destroy_status(status_id)
+        return self.api.destroy_status(status_id)
 
     def reply_to(self, status, in_reply_to, cut=True):
         text = u'@%s %s' % (in_reply_to.author.screen_name, status)
         if cut and len(text)>140:
             text = text[0:140]
-        self.update_status(text,
+        return self.update_status(text,
                            in_reply_to_status_id=in_reply_to.id)
