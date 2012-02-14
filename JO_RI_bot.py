@@ -147,7 +147,10 @@ class JO_RI_bot(BaseBot.BaseBot):
     def on_follow(self, target, source):
         if source.screen_name==self._name:
             return
-        text = u'@%s フォローありがとう！JO_RI_botは超高性能なボットです。説明書を読んでリプライを送ってみて！ https://github.com/shogo82148/JO_RI_bot/wiki 相互フォローを希望する人はこのツイートをお気に入りに登録して！[%s]' % (source.screen_name, self.get_timestamp())
+        text = u'@%s フォローありがとう！JO_RI_botは超高性能なボットです。' \
+            u'説明書を読んでリプライを送ってみて！ ' \
+            u'https://github.com/shogo82148/JO_RI_bot/wiki [%s]' \
+            % (source.screen_name, self.get_timestamp())
         self.update_status(text)
 
     re_follow_message = re.compile(ur'@(\w+)\s+フォローありがとう！')
@@ -157,7 +160,7 @@ class JO_RI_bot(BaseBot.BaseBot):
             return
         if m.group(1)!=source.screen_name:
             return
-        self.api.create_friendship(source.id)
+        #self.api.create_friendship(source.id)
 
 if __name__=='__main__':
     bot = JO_RI_bot()

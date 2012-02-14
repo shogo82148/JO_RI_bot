@@ -58,7 +58,7 @@ def StreamProcess(queue, consumer_key, consumer_secret, access_key, access_secre
     while True:
         try:
             stream.userstream(async=False)
-        except httplib.HTTPException:
+        except httplib.HTTPException, e:
             logger.error(str(e).encode('utf-8'))
             time.sleep(10)
             logger.info('Retry to start user stream...')
@@ -78,15 +78,16 @@ class BotStream(tweepywrap.StreamListener):
         
 class BaseBot(tweepywrap.StreamListener):
     def __init__(self, consumer_key, consumer_secret, access_key, access_secret):
-        super(BaseBot, self).__init__()
+        auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+        auth.set_access_token(access_key, access_secret)
+        api = tweepy.API(auth, retry_count=10, retry_delay=1)
+        super(BaseBot, self).__init__(api=api)
         #API設定
         self._consumer_key = consumer_key
         self._consumer_secret = consumer_secret
         self._access_key = access_key
         self._access_secret = access_secret
-        self.auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        self.auth.set_access_token(access_key, access_secret)
-        self.api = tweepy.API(self.auth, retry_count=10, retry_delay=1)
+        self.api = api
 
         #アカウント設定の読み込み
         self._name = self.api.me().screen_name
