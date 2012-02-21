@@ -16,11 +16,13 @@ from Translator import Translator
 import DayOfTheWeek
 from wolframalpha import WolframAlpha
 import DateTimeHooks
+import tweepy
+
 logger = logging.getLogger("BaseBot")
 
 class GlobalCloneBot(CloneBot):
-    def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db'):
-        super(GlobalCloneBot, self).__init__(crawl_user, mecab, log_file, db_file)
+    def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db', crawler_api=None):
+        super(GlobalCloneBot, self).__init__(crawl_user, mecab, log_file, db_file, crawler_api)
         self.translator = Translator(config.BING_APP_KEY, 'ja', 'en')
 
     def reply_hook(self, bot, status):
@@ -99,7 +101,10 @@ class JO_RI_bot(BaseBot.BaseBot):
 
         self.append_reply_hook(JO_RI_bot.typical_response)
 
-        self.clone_bot = GlobalCloneBot(config.CRAWL_USER)
+        crawler_auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
+        crawler_auth.set_access_token(config.CRAWLER_ACCESS_KEY, config.CRAWLER_ACCESS_SECRET)
+        crawler_api = tweepy.API(crawler_auth, retry_count=10, retry_delay=1)
+        self.clone_bot = GlobalCloneBot(config.CRAWL_USER, crawler_api = crawler_api)
         self.append_reply_hook(self.clone_bot.reply_hook)
         self.append_cron('30 * * * *',
                          self.clone_bot.crawl,
