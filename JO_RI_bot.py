@@ -19,7 +19,7 @@ import DateTimeHooks
 import tweepy
 import atnd
 
-logger = logging.getLogger("BaseBot")
+logger = logging.getLogger("Bot.JO_RI")
 
 class GlobalCloneBot(CloneBot):
     def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db', crawler_api=None):
@@ -178,14 +178,46 @@ class JO_RI_bot(BaseBot.BaseBot):
         
         return False
 
+    def is_spam(self, user):
+        return user.screen_name=='JO_RI' or \
+            user.statuses_count==0 or \
+            user.followers_count*5<user.friends_count
+
     def on_follow(self, target, source):
         if source.screen_name==self._name:
             return
-        text = u'@%s フォローありがとう！JO_RI_botは超高性能なボットです。' \
-            u'説明書を読んでリプライを送ってみて！ ' \
-            u'https://github.com/shogo82148/JO_RI_bot/wiki [%s]' \
-            % (source.screen_name, self.get_timestamp())
-        self.update_status(text)
+        if not source.protected and self.is_spam(source):
+            text = u'@%s あなたは本当に人間ですか？JO_RI_botはボットからのフォローを受け付けておりません。' \
+                u'人間だというなら1時間以内にこのツイートへ「ボットじゃないよ！」と返してもらえますか？ [%s]' \
+                % (source.screen_name, self.get_timestamp())
+            new_status = self.update_status(text)
+            name = u'AreYouBot-%d' % new_status.id
+            
+            def hook(bot, status):
+                if status.author.id!=source.id:
+                    return
+                if status.text.find(u'ボットじゃない')<0:
+                    return
+                self.reply_to(u'ボットじゃない・・・だと・・・ [%s]' % bot.get_timestamp(), status)
+                self.delete_reply_hook(name)
+                return True
+
+            def timeout(bot):
+                self.api.create_block(id=source.id)
+                self.update_status(u'%sがスパムっぽいのでブロックしました [%s]'
+                                   % (source.screen_name, self.get_timestamp()))
+
+            self.append_reply_hook(hook, name=name,
+                                   in_reply_to=new_status.id, time_out=60*60, on_time_out=timeout)
+        else:
+            text = u'@%s フォローありがとう！JO_RI_botは超高性能なボットです。' \
+                u'説明書を読んでリプライを送ってみて！ ' \
+                u'https://github.com/shogo82148/JO_RI_bot/wiki [%s]' \
+                % (source.screen_name, self.get_timestamp())
+            self.update_status(text)
+
+            if source.protected:
+                source.follow()
 
     re_follow_message = re.compile(ur'@(\w+)\s+フォローありがとう！')
     def on_favorite(self, target, source):
