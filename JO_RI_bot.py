@@ -17,6 +17,7 @@ import DayOfTheWeek
 from wolframalpha import WolframAlpha
 import DateTimeHooks
 import tweepy
+import atnd
 
 logger = logging.getLogger("BaseBot")
 
@@ -95,6 +96,7 @@ class JO_RI_bot(BaseBot.BaseBot):
         self.append_reply_hook(busNUT.Bus().hook)
         self.append_reply_hook(DayOfTheWeek.hook)
         self.append_reply_hook(DateTimeHooks.hook)
+        self.append_reply_hook(atnd.hook)
 
         self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator)
         self.append_reply_hook(self.wolfram.hook)
@@ -106,10 +108,10 @@ class JO_RI_bot(BaseBot.BaseBot):
         crawler_api = tweepy.API(crawler_auth, retry_count=10, retry_delay=1)
         self.clone_bot = GlobalCloneBot(config.CRAWL_USER, crawler_api = crawler_api)
         self.append_reply_hook(self.clone_bot.reply_hook)
-        self.append_cron('30 * * * *',
+        self.append_cron('30 */2 * * *',
                          self.clone_bot.crawl,
                          name=u'Cron Crawling')
-        self.append_cron('*/20 * * * *',
+        self.append_cron('00 7-23 * * *',
                          self.clone_bot.update_status,
                          name=u'Cron Update Status')
 

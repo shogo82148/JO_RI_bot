@@ -275,7 +275,7 @@ class BaseBot(tweepywrap.StreamListener):
             if isinstance(time_out, datetime.timedelta):
                 dt = time_out
             else:
-                dt = datetime.timedelta(seconds=timeout)
+                dt = datetime.timedelta(seconds=time_out)
             self.append_cron(datetime.datetime.now()+dt, cron_time_out, name=u'timeout-'+reply_hook_id)
         if priority is None:
             priority = PRIORITY_NORMAL
