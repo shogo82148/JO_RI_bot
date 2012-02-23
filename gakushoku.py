@@ -189,8 +189,8 @@ class GakuShoku(object):
         menu = self.get_menu(date)
         if not menu:
             return
-        head = u''
-        tail = u'[%s] #技大第一食堂' % bot.get_timestamp()
+        head = u'【学食メニュー】'
+        tail = u'[%s]' % bot.get_timestamp()
 
         messages = [u'本日の%sの学食メニューをお知らせします！' % dish_time]
 
@@ -214,7 +214,7 @@ class GakuShoku(object):
             dish = menu.get(dish_time + u'単品%d' % i, None)
             if dish:
                 single_items.append(dish)
-        messages.append(u'単品:' + u','.join(single_items))
+        messages.append(u'単品:' + u','.join(single_items) + u' ')
 
         messages.append(u'お残しは許しまへんでー！ ')
 
