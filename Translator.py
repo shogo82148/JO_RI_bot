@@ -13,7 +13,7 @@ import GrongishTranslator
 import Lou
 import logging
 
-logger = logging.getLogger("BaseBot")
+logger = logging.getLogger("Bot.Trans")
 
 class Translator(object):
     _base_url = 'http://api.microsofttranslator.com/V2/Http.svc/'

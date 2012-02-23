@@ -7,7 +7,7 @@ import re
 from Translator import Translator
 import logging
 
-logger = logging.getLogger("BaseBot")
+logger = logging.getLogger("Bot.wolf")
 
 class WolframAlpha(object):
     _base_url = 'http://api.wolframalpha.com/v2/query'

@@ -15,7 +15,7 @@ import logging.handlers
 from multiprocessing import Process, Lock, Queue
 import traceback
 
-logger = logging.getLogger("BaseBot")
+logger = logging.getLogger("Bot")
 
 PRIORITY_ADMIN = 0
 PRIORITY_IN_REPLY_TO = 1

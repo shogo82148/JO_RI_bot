@@ -11,7 +11,7 @@ import tweepy
 from dbmanager import DBManager
 from generator import MarkovGenerator
 
-logger = logging.getLogger("BaseBot")
+logger = logging.getLogger("Bot.Clone")
 
 class CloneBot(object):
     def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db', crawler_api=None):
