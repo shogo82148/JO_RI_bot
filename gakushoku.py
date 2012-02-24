@@ -144,7 +144,7 @@ class GakuShoku(object):
         selections = []
 
         #A定食
-        for dish_type in [u'a', u'b', u'c', u'日替わりa']:
+        for dish_type in [u'a', u'b', u'c', u'週替わりa']:
             dish1 = menu.get(dish_time + dish_type + u'定食1', None)
             dish2 = menu.get(dish_time + dish_type + u'定食2', None)
             if dish1:
@@ -189,36 +189,46 @@ class GakuShoku(object):
         menu = self.get_menu(date)
         if not menu:
             return
-        head = u'【学食メニュー】'
-        tail = u'#技大第一食堂'
+        head = u''
+        tail = u'[%s] #技大第一食堂' % bot.get_timestamp()
 
-        bot.update_status(u'%s 本日の%sの学食メニューをお知らせします！ %s' % (head, dish_time, tail))
+        messages = [u'本日の%sの学食メニューをお知らせします！' % dish_time]
 
         #A定食
-        for dish_type in [u'a', u'b', u'c', u'日替わりa']:
+        for dish_type in [u'a', u'b', u'c', u'週替わりa']:
             dish1 = menu.get(dish_time + dish_type + u'定食1', None)
             dish2 = menu.get(dish_time + dish_type + u'定食2', None)
             if dish1:
                 if dish2:
-                    bot.update_status(u'%s %s定食:%sと%s %s' % (head, dish_type.upper(), dish1, dish2, tail))
+                    messages.append(u'%s定食:%sと%s ' % (dish_type.upper(), dish1, dish2))
                 else:
-                    bot.update_status(u'%s %s定食:%s %s' % (head, dish_type.upper(), dish1, tail))
+                    messages.append(u'%s定食:%s ' % (dish_type.upper(), dish1))
 
         #セットメニュー
         dish = menu.get(dish_time + u'セット', None)
         if dish:
-            bot.update_status(u'%s セット:%s %s' % (head, dish, tail))
+            messages.append(u'セット:%s ' % dish)
 
-        #単品メニュー
-        dishes = []
+        single_items = []
         for i in range(1,6):
             dish = menu.get(dish_time + u'単品%d' % i, None)
             if dish:
-                dishes.append(dish)
-        if len(dishes)>0:
-            bot.update_status(u'%s 単品:%s %s' % (head, ','.join(dishes), tail))
+                single_items.append(dish)
+        messages.append(u'単品:' + u','.join(single_items))
 
-        bot.update_status(head + u'お残しは許しまへんでー！' + tail)
+        messages.append(u'お残しは許しまへんでー！ ')
+
+        #Messageを組み合わせる
+        limit = 140 - len(head) - len(tail)
+        text = u''
+        for m in messages:
+            if len(text)+len(m)<=limit:
+                text += m
+            else:
+                bot.update_status(head+text+tail)
+                text = m
+        if text:
+            bot.update_status(head+text+tail)
 
 def main():    
     import config
