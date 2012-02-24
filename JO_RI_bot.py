@@ -3,21 +3,21 @@
 
 import re
 import config
-import BaseBot
-import AdminFunctions
+import TwitterBot
+import TwitterBot.AdminFunctions as AdminFunctions
 import datetime
 import random
 import logging
-import gakushoku
-from CloneBot import CloneBot
-from dokusho import Dokusho
-import busNUT
-from Translator import Translator
-import DayOfTheWeek
-from wolframalpha import WolframAlpha
-import DateTimeHooks
+from TwitterBot.modules import gakushoku
+from TwitterBot.modules.CloneBot import CloneBot
+from TwitterBot.modules.dokusho import Dokusho
+from TwitterBot.modules import busNUT
+from TwitterBot.modules.Translator import Translator
+from TwitterBot.modules import DayOfTheWeek
+from TwitterBot.modules.wolframalpha import WolframAlpha
+import TwitterBot.modules.DateTimeHooks as DateTimeHooks
 import tweepy
-import atnd
+import TwitterBot.modules.atnd as atnd
 
 logger = logging.getLogger("Bot.JO_RI")
 
@@ -43,7 +43,7 @@ class GlobalCloneBot(CloneBot):
                     bot.update_status(u'[再翻訳] ' + text)
         return True
 
-class JO_RI_bot(BaseBot.BaseBot):
+class JO_RI_bot(TwitterBot.BaseBot):
     def __init__(self):
         super(JO_RI_bot, self).__init__(config.CONSUMER_KEY,
                                         config.CONSUMER_SECRET,
@@ -52,12 +52,12 @@ class JO_RI_bot(BaseBot.BaseBot):
         self.append_reply_hook(AdminFunctions.shutdown_hook(
                 allowed_users = config.ADMIN_USER,
                 command = set([u'バルス', u'シャットダウン', u'shutdown', u'halt', u':q!', u'c-x c-c'])),
-            priority=BaseBot.PRIORITY_ADMIN)
+            priority=TwitterBot.PRIORITY_ADMIN)
         self.append_reply_hook(AdminFunctions.delete_hook(
                 allowed_users = config.ADMIN_USER,
                 command = set([u'削除', u'デリート', u'delete']),
                 no_in_reply = u'in_reply_to入ってないよ！'),
-            priority=BaseBot.PRIORITY_ADMIN)
+            priority=TwitterBot.PRIORITY_ADMIN)
         self.append_reply_hook(AdminFunctions.history_hook(
                 reply_limit = 2,
                 reset_cycle = 20*60,

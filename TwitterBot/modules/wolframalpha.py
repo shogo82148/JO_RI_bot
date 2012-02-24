@@ -4,7 +4,7 @@
 import urllib
 import lxml.etree
 import re
-from Translator import Translator
+from TwitterBot.lib.Translator import Translator
 import logging
 
 logger = logging.getLogger("Bot.wolf")
