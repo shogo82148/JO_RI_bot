@@ -21,8 +21,9 @@ class Translator(object):
         self.translator = LibTranslator(appId, lang_from, lang_to)
 
         lang = '|'.join(self.translator.get_lang_list())
-        self._re_translate_text = re.compile(ur'^(.*)を(%s)(訳|語訳|語翻訳)' % lang, re.IGNORECASE)
-        self._re_translate = re.compile(ur'(%s)(訳|語訳|語翻訳)' % lang, re.IGNORECASE)
+        self._re_translate_text = re.compile(ur'^(?P<text>.*[^語])を(:?(?P<from>%s)語から)?(?P<to>%s)(訳|語訳|語翻訳|語へ翻訳)' % (lang, lang), re.IGNORECASE)
+        self._re_translate = re.compile(ur'(:?(?P<from>%s)語(:?を|から))?(?P<to>%s)(:?訳|語訳|語翻訳|語へ翻訳)' % (lang, lang), re.IGNORECASE)
+
 
     _re_timestamp = re.compile(ur'\[(.*?)\]')
     def rm_timestamp(self, text):
@@ -31,20 +32,24 @@ class Translator(object):
     def hook(self, bot, status):
         m = self._re_translate_text.search(status.text)
         if m:
-            lang = m.group(2)
-            lang = self.translator.lang2code(lang)
-            text = m.group(1)
+            lang_from = m.group('from')
+            lang_from = self.translator.lang2code(lang_from)
+            lang_to = m.group('to')
+            lang_to = self.translator.lang2code(lang_to)
+            text = m.group('text')
             text = self.rm_timestamp(text)
             text = self._re_mention.sub('', text)
-            text = self.translator.translate(text, None, lang)
-            text = u'[%s語訳]%s [%s]' % (self.translator.code2lang(lang), text, bot.get_timestamp())
+            text = self.translator.translate(text, lang_from, lang_to)
+            text = u'[%s語訳]%s [%s]' % (self.translator.code2lang(lang_to), text, bot.get_timestamp())
             bot.reply_to(text, status)
             return True
 
         m = self._re_translate.search(status.text)
         if m:
-            lang = m.group(1)
-            lang = self.translator.lang2code(lang)
+            lang_from = m.group('from')
+            lang_from = self.translator.lang2code(lang_from)
+            lang_to = m.group('to')
+            lang_to = self.translator.lang2code(lang_to)
             text = u'翻訳する文章を教えてください'
             m = self._re_retweet.search(status.text)
             if m:
@@ -56,8 +61,8 @@ class Translator(object):
                 text = reply_to_status.text
             text = self.rm_timestamp(text)
             text = self._re_mention.sub('', text)
-            text = self.translator.translate(text, None, lang)
-            text = u'[%s語訳]%s [%s]' % (self.translator.code2lang(lang), text, bot.get_timestamp())
+            text = self.translator.translate(text, lang_from, lang_to)
+            text = u'[%s語訳]%s [%s]' % (self.translator.code2lang(lang_to), text, bot.get_timestamp())
             bot.reply_to(text, status)
             return True
 
