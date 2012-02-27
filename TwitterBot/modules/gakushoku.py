@@ -214,7 +214,8 @@ class GakuShoku(object):
             dish = menu.get(dish_time + u'単品%d' % i, None)
             if dish:
                 single_items.append(dish)
-        messages.append(u'単品:' + u','.join(single_items) + u' ')
+        if len(single_items)>0:
+            messages.append(u'単品:' + u','.join(single_items) + u' ')
 
         messages.append(u'お残しは許しまへんでー！ ')
 
