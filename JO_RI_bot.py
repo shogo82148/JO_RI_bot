@@ -98,7 +98,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_reply_hook(DateTimeHooks.hook)
         self.append_reply_hook(atnd.hook)
 
-        self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator)
+        self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator.translator)
         self.append_reply_hook(self.wolfram.hook)
 
         self.append_reply_hook(JO_RI_bot.typical_response)
