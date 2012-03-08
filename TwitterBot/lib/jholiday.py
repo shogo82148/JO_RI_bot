@@ -82,6 +82,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 import datetime
 import sys
+import math
 
 MONDAY, TUESDAY, WEDNESDAY = 0, 1, 2
 
