@@ -11,14 +11,15 @@ import tweepy
 from dbmanager import DBManager
 from generator import MarkovGenerator
 
-logger = logging.getLogger("BaseBot")
+logger = logging.getLogger("Bot.Clone")
 
 class CloneBot(object):
-    def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db'):
+    def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db', crawler_api=None):
         self._crawl_user = crawl_user
         self._mecab = mecab or MeCab.Tagger()
         self._log_file = log_file
         self._db_file = db_file
+        self._crawler_api = crawler_api
 
     def reply_hook(self, bot, status):
         """適当にリプライを返してあげる"""
@@ -43,7 +44,7 @@ class CloneBot(object):
             return text.replace('\t', ' ').replace('\n', ' ')
 
         with DBManager(self._mecab, self._db_file) as db:
-            api = bot.api
+            api = self._crawler_api or bot.api
             arg = {}
             arg['id'] = self._crawl_user
             if db.since_id:

@@ -66,13 +66,18 @@ _rules = (
 
 _re_rules = [(re.compile(args[0]), args) for args in _rules]
 
-def toMisakurago(text):
-    for rule, arg in _re_rules:
-        repl = arg[1]
-        count = 0
-        if len(arg)>=3:
-            count = arg[2]
-        text = rule.sub(repl, text, count)
-    return text
+_re_misakura = re.compile(u'゛|[あぁ]{3,}|[いぃ]{3,}|[うぅ]{3,}|[えぇ]{3,}|[おぉォ]{3,}'
+                          u'|ちんぽミルク|しゅごい|スゴぉッ|れしゅぅ|ふたなり|んおっ|でりゅぅ|まんこ|らめぇ')
 
+class Misakurago(object):
+    def translate(self, text):
+        for rule, arg in _re_rules:
+            repl = arg[1]
+            count = 0
+            if len(arg)>=3:
+                count = arg[2]
+            text = rule.sub(repl, text, count)
+        return text
 
+    def detect(self, text):
+        return not _re_misakura.search(text) is None

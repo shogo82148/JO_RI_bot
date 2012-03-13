@@ -23,7 +23,7 @@ _gr_numbers = (
     u'バギン',
 )
 
-class GrongishTranslator(object):
+class Grongish(object):
     re_long = re.compile(u'(.[ャュョァィゥェォ]?)ー')
     re_ltu = re.compile(u'ッ(.[ャュョァィゥェォ]?)')
     def __init__(self, tagger=None, dic=None):
@@ -156,8 +156,14 @@ class GrongishTranslator(object):
         text = self.re_numbers.sub(translate_num, text)
         return text
 
+    def detect(self, text):
+        d = set(u'ガギグゲゴザジズゼゾダヂヅデドバビブベボラリルレロサシスセソマミムメモパジャュョン')
+        all_length = len(text)
+        d_length = len([ch for ch in text if ch in d])
+        return float(d_length)/all_length>=0.7
+
 def main():
-    g = GrongishTranslator(dic='.')
+    g = Grongish(dic='.')
     test_text = [
         u'殺してやる！',
         u'命拾いしたな',

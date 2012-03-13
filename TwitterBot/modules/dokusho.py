@@ -19,7 +19,7 @@ import anydbm
 import itertools
 import logging
 
-logger = logging.getLogger("BaseBot")
+logger = logging.getLogger("Bot.dokusho")
 
 _dokusho_base = 'http://book.akahoshitakuya.com'
 

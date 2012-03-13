@@ -2,8 +2,9 @@
 
 import MeCab
 import jcconv
+import re
 
-class OndulishTranslator:
+class Ondulish:
     def __init__(self, tagger=None):
         self._tagger = tagger or MeCab.Tagger()
         self._ondulish = MeCab.Tagger('-d dic/ondulish')
@@ -31,7 +32,12 @@ class OndulishTranslator:
         yomi = self._ondulish.parse(yomi)
         return jcconv.kata2half(yomi.decode('utf-8'))
 
+    _re_ondulish = re.compile(u'[ｱ-ﾝﾞﾟ]{5,}')
+    def detect(self, text):
+        print text
+        return not self._re_ondulish.search(text) is None
+
 if __name__=='__main__':
     import sys
-    t = OndulishTranslator()
+    t = Ondulish()
     print t.translate(' '.join(sys.argv[1:]))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-import BaseBot
+import TwitterBot
 import time
 import datetime
 
@@ -77,7 +77,7 @@ class shutdown_hook(admin_hook):
         if not self._is_command(status, self._command):
             return False
         if self.is_allowed(status):
-            raise BaseBot.BotShutdown
+            raise TwitterBot.BotShutdown
         return False
 
 class history_hook(admin_hook):

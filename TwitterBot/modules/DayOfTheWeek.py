@@ -7,7 +7,7 @@
 import re
 import datetime
 import unicodedata
-from jholiday import holiday_name
+from TwitterBot.lib.jholiday import holiday_name
 
 _re_date = re.compile(ur'(西暦|平成|昭和|大正|明治)?(元|\d+)[/年](\d+)[/月](\d+)日?は何曜日')
 _week_name = [u'月', u'火', u'水', u'木', u'金', u'土', u'日']

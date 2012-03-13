@@ -7,24 +7,15 @@ import anydbm
 import re
 import sys
 
-class Parse:
-    def __init__(self, s, tagger=None):
-        tagger = tagger or MeCab.Tagger()
-        self._node = None
-        self._tagger = tagger
-        self._s = s
-        
-    def next(self):
-        if not self._node:
-            self._node = self._tagger.parseToNode(self._s.encode('utf-8'))
-            return self._node
-        self._node = self._node.next
-        if not self._node:
-            raise StopIteration
-        return self._node
-        
-    def __iter__(self):
-        return self
+class Node(object):
+    def __init__(self, node):
+        a = node.split('\t')
+        self.surface, self.feature = a
+
+def Parse(s, tagger = None):
+    node = tagger.parse(s.encode('utf-8'))
+    result = [Node(n) for n in node.split('\n')[:-2]]
+    return [Node(DBManager.BOS)] + result + [Node(DBManager.EOS)]
 
 def Bigram(itr):
     itr = iter(itr)

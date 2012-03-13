@@ -7,7 +7,7 @@
 import datetime
 import re
 import sys
-from jholiday import holiday_name
+from TwitterBot.lib.jholiday import holiday_name
 
 #長岡駅発のバス時刻表
 # 駅発車時刻, 技大着, 休日運休Flag(Default:False), 技大入り口に止まらない(Default:False)

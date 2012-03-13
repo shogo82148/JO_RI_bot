@@ -3,24 +3,27 @@
 
 import re
 import config
-import BaseBot
-import AdminFunctions
+import TwitterBot
+import TwitterBot.AdminFunctions as AdminFunctions
 import datetime
 import random
 import logging
-import gakushoku
-from CloneBot import CloneBot
-from dokusho import Dokusho
-import busNUT
-from Translator import Translator
-import DayOfTheWeek
-from wolframalpha import WolframAlpha
-import DateTimeHooks
-logger = logging.getLogger("BaseBot")
+from TwitterBot.modules import gakushoku
+from TwitterBot.modules.CloneBot import CloneBot
+from TwitterBot.modules.dokusho import Dokusho
+from TwitterBot.modules import busNUT
+from TwitterBot.modules.Translator import Translator
+from TwitterBot.modules import DayOfTheWeek
+from TwitterBot.modules.wolframalpha import WolframAlpha
+import TwitterBot.modules.DateTimeHooks as DateTimeHooks
+import tweepy
+import TwitterBot.modules.atnd as atnd
+
+logger = logging.getLogger("Bot.JO_RI")
 
 class GlobalCloneBot(CloneBot):
-    def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db'):
-        super(GlobalCloneBot, self).__init__(crawl_user, mecab, log_file, db_file)
+    def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db', crawler_api=None):
+        super(GlobalCloneBot, self).__init__(crawl_user, mecab, log_file, db_file, crawler_api)
         self.translator = Translator(config.BING_APP_KEY, 'ja', 'en')
 
     def reply_hook(self, bot, status):
@@ -40,7 +43,7 @@ class GlobalCloneBot(CloneBot):
                     bot.update_status(u'[再翻訳] ' + text)
         return True
 
-class JO_RI_bot(BaseBot.BaseBot):
+class JO_RI_bot(TwitterBot.BaseBot):
     def __init__(self):
         super(JO_RI_bot, self).__init__(config.CONSUMER_KEY,
                                         config.CONSUMER_SECRET,
@@ -49,12 +52,12 @@ class JO_RI_bot(BaseBot.BaseBot):
         self.append_reply_hook(AdminFunctions.shutdown_hook(
                 allowed_users = config.ADMIN_USER,
                 command = set([u'バルス', u'シャットダウン', u'shutdown', u'halt', u':q!', u'c-x c-c'])),
-            priority=BaseBot.PRIORITY_ADMIN)
+            priority=TwitterBot.PRIORITY_ADMIN)
         self.append_reply_hook(AdminFunctions.delete_hook(
                 allowed_users = config.ADMIN_USER,
                 command = set([u'削除', u'デリート', u'delete']),
                 no_in_reply = u'in_reply_to入ってないよ！'),
-            priority=BaseBot.PRIORITY_ADMIN)
+            priority=TwitterBot.PRIORITY_ADMIN)
         self.append_reply_hook(AdminFunctions.history_hook(
                 reply_limit = 2,
                 reset_cycle = 20*60,
@@ -93,18 +96,22 @@ class JO_RI_bot(BaseBot.BaseBot):
         self.append_reply_hook(busNUT.Bus().hook)
         self.append_reply_hook(DayOfTheWeek.hook)
         self.append_reply_hook(DateTimeHooks.hook)
+        self.append_reply_hook(atnd.hook)
 
-        self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator)
+        self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator.translator)
         self.append_reply_hook(self.wolfram.hook)
 
         self.append_reply_hook(JO_RI_bot.typical_response)
 
-        self.clone_bot = GlobalCloneBot(config.CRAWL_USER)
+        crawler_auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
+        crawler_auth.set_access_token(config.CRAWLER_ACCESS_KEY, config.CRAWLER_ACCESS_SECRET)
+        crawler_api = tweepy.API(crawler_auth, retry_count=10, retry_delay=1)
+        self.clone_bot = GlobalCloneBot(config.CRAWL_USER, crawler_api = crawler_api)
         self.append_reply_hook(self.clone_bot.reply_hook)
-        self.append_cron('30 * * * *',
+        self.append_cron('30 */2 * * *',
                          self.clone_bot.crawl,
                          name=u'Cron Crawling')
-        self.append_cron('*/20 * * * *',
+        self.append_cron('00 7-23 * * *',
                          self.clone_bot.update_status,
                          name=u'Cron Update Status')
 
@@ -171,14 +178,46 @@ class JO_RI_bot(BaseBot.BaseBot):
         
         return False
 
+    def is_spam(self, user):
+        return user.screen_name=='JO_RI' or \
+            user.statuses_count==0 or \
+            user.followers_count*5<user.friends_count
+
     def on_follow(self, target, source):
         if source.screen_name==self._name:
             return
-        text = u'@%s フォローありがとう！JO_RI_botは超高性能なボットです。' \
-            u'説明書を読んでリプライを送ってみて！ ' \
-            u'https://github.com/shogo82148/JO_RI_bot/wiki [%s]' \
-            % (source.screen_name, self.get_timestamp())
-        self.update_status(text)
+        if not source.protected and self.is_spam(source):
+            text = u'@%s あなたは本当に人間ですか？JO_RI_botはボットからのフォローを受け付けておりません。' \
+                u'人間だというなら1時間以内にこのツイートへ「ボットじゃないよ！」と返してもらえますか？ [%s]' \
+                % (source.screen_name, self.get_timestamp())
+            new_status = self.update_status(text)
+            name = u'AreYouBot-%d' % new_status.id
+            
+            def hook(bot, status):
+                if status.author.id!=source.id:
+                    return
+                if status.text.find(u'ボットじゃない')<0:
+                    return
+                self.reply_to(u'ボットじゃない・・・だと・・・ [%s]' % bot.get_timestamp(), status)
+                self.delete_reply_hook(name)
+                return True
+
+            def timeout(bot):
+                self.api.create_block(id=source.id)
+                self.update_status(u'%sがスパムっぽいのでブロックしました [%s]'
+                                   % (source.screen_name, self.get_timestamp()))
+
+            self.append_reply_hook(hook, name=name,
+                                   in_reply_to=new_status.id, time_out=60*60, on_time_out=timeout)
+        else:
+            text = u'@%s フォローありがとう！JO_RI_botは超高性能なボットです。' \
+                u'説明書を読んでリプライを送ってみて！ ' \
+                u'https://github.com/shogo82148/JO_RI_bot/wiki [%s]' \
+                % (source.screen_name, self.get_timestamp())
+            self.update_status(text)
+
+            if source.protected:
+                source.follow()
 
     re_follow_message = re.compile(ur'@(\w+)\s+フォローありがとう！')
     def on_favorite(self, target, source):

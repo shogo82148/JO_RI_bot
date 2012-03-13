@@ -34,7 +34,7 @@ class GakuShoku(object):
             return None
         return records[0].content
 
-    _re_menu = re.compile(u'[メめﾒ][ニにﾆ][ュゅｭ]|menu|[昼晩夕]食|めし|ごはん|飯|[abc]定|学食'
+    _re_menu = re.compile(u'[メめﾒ][ニにﾆ][ュゅｭ]|menu|[昼晩夕]食|めし|ごはん|飯|[abc]定|学食|定食'
                           u'|(腹|なか|はら).*(減った|へった|すいた|空いた)'
                           u'|[フふﾌ][ンんﾝ](ガ|が|ｶﾞ)'
                           u'|はらへ')
@@ -90,6 +90,8 @@ class GakuShoku(object):
             return self._teishoku(menu, is_dinner, u'b')
         elif query.find(u'c')>=0:
             return self._teishoku(menu, is_dinner, u'c')
+        elif query.find(u'定食')>=0:
+            return self._teishoku2(menu, is_dinner)
         elif self._re_set_menu.search(query):
             return self._set_menu(menu, is_dinner)
         elif self._re_item.search(query):
@@ -111,6 +113,20 @@ class GakuShoku(object):
             return u'%sの%sの%s定食は、%sです' % (date, dish_time, dish_type, dish1)
         else:
             return u'%sの%sの%s定食は、%sと、%sです' % (date, dish_time, dish_type, dish1, dish2)
+
+    def _teishoku2(self, menu, is_dinner):
+        """2食の定食メニューを返す"""
+        dish_time = (u'晩御飯' if is_dinner else u'お昼ごはん')
+        date = menu[u'date']
+        dish1 = menu.get(dish_time + u'定食1', None)
+        dish2 = menu.get(dish_time + u'定食2', None)
+
+        if not dish1:
+            return u'%sの%sの第2食堂日替わり定食はありません' % (date, dish_time)
+        elif not dish2:
+            return u'%sの%sの第2食堂日替わり定食は、%sです' % (date, dish_time, dish1)
+        else:
+            return u'%sの%sの第2食堂日替わり定食は、%sと、%sです' % (date, dish_time, dish1, dish2)
     
     def _set_menu(self, menu, is_dinner):
         """セットメニューを返す"""
@@ -143,8 +159,8 @@ class GakuShoku(object):
         date = menu[u'date']
         selections = []
 
-        #A定食
-        for dish_type in [u'a', u'b', u'c', u'日替わりa']:
+        #第一食堂定食
+        for dish_type in [u'a', u'b', u'c', u'週替わりa']:
             dish1 = menu.get(dish_time + dish_type + u'定食1', None)
             dish2 = menu.get(dish_time + dish_type + u'定食2', None)
             if dish1:
@@ -169,6 +185,13 @@ class GakuShoku(object):
         selections.append(u'油そば')
         selections.append(u'油そば')
 
+        #第二食堂定食
+        dish_time = (u'晩御飯' if is_dinner else u'お昼ごはん')
+        for dish_type in [u'定食1', u'定食2']:
+            dish = menu.get(dish_time + dish_type, None)
+            if dish:
+                selections.append(u'%s(%s定食)' % (dish, dish_time))
+
         #適当に推薦
         return u'%sの%sのおすすめは、%sです' % (
             date, dish_time,
@@ -190,35 +213,57 @@ class GakuShoku(object):
         if not menu:
             return
         head = u'【学食メニュー】'
-        tail = u'#技大第一食堂'
+        tail = u'[%s]' % bot.get_timestamp()
 
-        bot.update_status(u'%s 本日の%sの学食メニューをお知らせします！ %s' % (head, dish_time, tail))
+        messages = [u'本日の%sの学食メニューをお知らせします！' % dish_time]
 
         #A定食
-        for dish_type in [u'a', u'b', u'c', u'日替わりa']:
+        for dish_type in [u'a', u'b', u'c', u'週替わりa']:
             dish1 = menu.get(dish_time + dish_type + u'定食1', None)
             dish2 = menu.get(dish_time + dish_type + u'定食2', None)
             if dish1:
                 if dish2:
-                    bot.update_status(u'%s %s定食:%sと%s %s' % (head, dish_type.upper(), dish1, dish2, tail))
+                    messages.append(u'%s定食:%sと%s ' % (dish_type.upper(), dish1, dish2))
                 else:
-                    bot.update_status(u'%s %s定食:%s %s' % (head, dish_type.upper(), dish1, tail))
+                    messages.append(u'%s定食:%s ' % (dish_type.upper(), dish1))
 
         #セットメニュー
         dish = menu.get(dish_time + u'セット', None)
         if dish:
-            bot.update_status(u'%s セット:%s %s' % (head, dish, tail))
+            messages.append(u'セット:%s ' % dish)
 
-        #単品メニュー
-        dishes = []
+        single_items = []
         for i in range(1,6):
             dish = menu.get(dish_time + u'単品%d' % i, None)
             if dish:
-                dishes.append(dish)
-        if len(dishes)>0:
-            bot.update_status(u'%s 単品:%s %s' % (head, ','.join(dishes), tail))
+                single_items.append(dish)
+        if len(single_items)>0:
+            messages.append(u'単品:' + u','.join(single_items) + u' ')
 
-        bot.update_status(head + u'お残しは許しまへんでー！' + tail)
+        #第二食堂定食
+        dish_time = (u'晩御飯' if is_dinner else u'お昼ごはん')
+        teishoku2 = []
+        for dish_type in [u'定食1', u'定食2']:
+            dish = menu.get(dish_time + dish_type, None)
+            if dish:
+                teishoku2.append(dish)
+        if len(teishoku2)>0:
+            messages.append(dish_time + u'定食:' + u','.join(teishoku2) + u' ')
+
+
+        messages.append(u'お残しは許しまへんでー！ ')
+
+        #Messageを組み合わせる
+        limit = 140 - len(head) - len(tail)
+        text = u''
+        for m in messages:
+            if len(text)+len(m)<=limit:
+                text += m
+            else:
+                bot.update_status(head+text+tail)
+                text = m
+        if text:
+            bot.update_status(head+text+tail)
 
 def main():    
     import config

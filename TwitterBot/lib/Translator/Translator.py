@@ -8,12 +8,13 @@ import urllib
 import re
 from xml.sax.saxutils import unescape
 import Misakurago
-import OndulishTranslator
-import GrongishTranslator
+import Ondulish
+import Grongish
 import Lou
 import logging
+import Ika
 
-logger = logging.getLogger("BaseBot")
+logger = logging.getLogger("Bot.Trans")
 
 class Translator(object):
     _base_url = 'http://api.microsofttranslator.com/V2/Http.svc/'
@@ -63,20 +64,15 @@ class Translator(object):
         u'オンドゥルー': 'ondulishlou',
         u'グロンギ': 'grongish',
         }
-    _re_retweet = re.compile(ur'[QR]T\s+@?\w+:?\s+(.*)', re.IGNORECASE)
-    _re_mention = re.compile(ur'@\w+')
-    _re_detect = re.compile(ur'^(.*?)(って)?何語')
 
     def __init__(self, appId, lang_from=None, lang_to='ja'):
         self.lang_from = lang_from
         self.lang_to = lang_to
         self.appId = appId
-
-        #リプライ用の正規表現作成
-        lang_list = self._lang_dict.keys() + self._lang_dict.values()
-        lang = '|'.join(lang_list)
-        self._re_translate_text = re.compile(ur'^(.*)を(%s)語?訳' % lang, re.IGNORECASE)
-        self._re_translate = re.compile(ur'(%s)語?訳' % lang, re.IGNORECASE)
+        self.ika = Ika.Ika()
+        self.misakurago = Misakurago.Misakurago()
+        self.ondulish = Ondulish.Ondulish()
+        self.grongish = Grongish.Grongish(dic='dic/Grongish')
 
         #言語コード対名前辞書を作成
         inverse_lang_dict = {}
@@ -86,13 +82,16 @@ class Translator(object):
                 inverse_lang_dict[lang] = name
         self._inverse_lang_dict = inverse_lang_dict
 
-    def _translateIka(self, text):
-        logger.debug(u'Translating with Ika')
-        if isinstance(text, unicode):
-            text = text.encode('utf-8')
-        url = 'http://ika.koneta.org/api?text=' + urllib.quote_plus(text)
-        res = urllib.urlopen(url).read().decode('utf-8')
-        return res
+    def lang2code(self, lang):
+        """ 言語名を言語コードに変換する """
+        return self._lang_dict.get(lang, lang)
+
+    def code2lang(self, code):
+        """ 言語コードを言語名に変換する """
+        return self._inverse_lang_dict.get(code, code)
+
+    def get_lang_list(self):
+        return self._lang_dict.keys() + self._lang_dict.values()
 
     def _translateBing(self, text, lang_from=None, lang_to=None):
         logger.debug(u'Translating with Bing')
@@ -116,34 +115,15 @@ class Translator(object):
         logger.debug(u'Result: %s' % text)
         return text
 
-    _re_ika = re.compile(u'イカ|ゲソ')
-    def _detectIka(self, text):
-        return not self._re_ika.search(text) is None
-
-    _re_misakura = re.compile(u'゛|[あぁ]{3,}|[いぃ]{3,}|[うぅ]{3,}|[えぇ]{3,}|[おぉォ]{3,}'
-                              u'|ちんぽミルク|しゅごい|スゴぉッ|れしゅぅ|ふたなり|んおっ|でりゅぅ|まんこ|らめぇ')
-    def _detectMisakura(self, text):
-        return not self._re_misakura.search(text) is None
-
-    _re_ondulish = re.compile(u'[ｱ-ﾝ]{5,}')
-    def _detectOndulish(self, text):
-        return not self._re_ondulish.search(text) is None
-
-    def _detectGrangish(self, text):
-        d = set(u'ガギグゲゴザジズゼゾダヂヅデドバビブベボラリルレロサシスセソマミムメモパジャュョン')
-        all_length = len(text)
-        d_length = len([ch for ch in text if ch in d])
-        return float(d_length)/all_length>=0.7
-
     def detect(self, text):
-        if self._detectIka(text):
+        if self.ika.detect(text):
             return 'ikamusume'
-        if self._detectMisakura(text):
+        if self.misakurago.detect(text):
             return 'misakura'
-        if self._detectOndulish(text):
+        if self.ondulish.detect(text):
             return 'ondulish'
-        if self._detectGrangish(text):
-            return 'grangish'
+        if self.grongish.detect(text):
+            return 'grongish'
         arg = {}
         arg['appId'] = self.appId
         if isinstance(text, unicode):
@@ -159,20 +139,20 @@ class Translator(object):
     def translate(self, text, lang_from=None, lang_to=None):
         lang_from = lang_from or self.lang_from
         lang_to = lang_to or self.lang_to
-        if lang_from=='grangish' or self._detectGrangish(text):
-            text = GrongishTranslator.GrongishTranslator(dic='dic/Grongish').grtranslate(text)
+        if lang_from=='grangish' or self.grongish.detect(text):
+            text = self.grongish.grtranslate(text)
         if lang_to=='ikamusume':
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
-            return self._translateIka(text)
+            return self.ika.translate(text)
         elif lang_to=='misakura':
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
-            return Misakurago.toMisakurago(text)
+            return self.misakurago.translate(text)
         elif lang_to=='ondulish':
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
-            return OndulishTranslator.OndulishTranslator().translate(text)
+            return self.ondulish.translate(text)
         elif lang_to=='lou':
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
@@ -181,58 +161,11 @@ class Translator(object):
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
             text = Lou.Lou().translate(text)
-            return OndulishTranslator.OndulishTranslator().translate(text)
+            return Ondulish.Ondulish().translate(text)
         elif lang_to=='grongish':
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
-            return GrongishTranslator.GrongishTranslator().translate(text)
+            return self.grongish.translate(text)
         else:
             return self._translateBing(text, lang_from, lang_to)
 
-    def hook(self, bot, status):
-        m = self._re_translate_text.search(status.text)
-        if m:
-            text = m.group(1)
-            lang = m.group(2)
-            text = self._re_mention.sub('', text)
-            bot.reply_to(self.translate(text, None, self._lang_dict.get(lang, lang)), status)
-            return True
-        m = self._re_translate.search(status.text)
-        if m:
-            lang = m.group(1)
-            text = u'翻訳する文章を教えてください'
-            m = self._re_retweet.search(status.text)
-            if m:
-                #RTされた文章を翻訳
-                text = m.group(1)
-            elif status.in_reply_to_status_id:
-                #リプライを飛ばした先の文章を翻訳
-                reply_to_status = bot.api.get_status(status.in_reply_to_status_id)
-                text = reply_to_status.text
-            text = self._re_mention.sub('', text)
-            bot.reply_to(u'[%s語訳]%s [%s]' % (
-                    self._inverse_lang_dict.get(lang, lang),
-                    self.translate(text, None, self._lang_dict.get(lang, lang)),
-                    bot.get_timestamp()), status)
-            return True
-
-        m = self._re_detect.search(status.text)
-        if m:
-            text = m.group(1)
-            m = self._re_retweet.search(status.text)
-            if m:
-                #RTされた文章を翻訳
-                text = m.group(1)
-            elif status.in_reply_to_status_id:
-                #リプライを飛ばした先の文章を翻訳
-                reply_to_status = bot.api.get_status(status.in_reply_to_status_id)
-                text = reply_to_status.text
-            text = self._re_mention.sub('', text)
-            lang = self.detect(text)
-            if lang:
-                bot.reply_to(u'それは%s語だね [%s]' % (self._inverse_lang_dict.get(lang, lang), bot.get_timestamp()), status)
-            else:
-                bot.reply_to(u'ワカラナイ [%s]' % bot.get_timestamp(), status)
-            return True
-
-        return False
