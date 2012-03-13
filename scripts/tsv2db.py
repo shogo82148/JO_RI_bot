@@ -4,7 +4,7 @@
 import sys
 import codecs
 
-from dbmanager import DBManager
+from TwitteBot.modules.CloneBot.dbmanager import DBManager
 sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
 
