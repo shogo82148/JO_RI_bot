@@ -17,6 +17,7 @@ def main():
                         config.ACCESS_SECRET)
     bot.append_cron('00 00 * * *', tweet)
     bot.append_reply_hook(reply)
+    bot.main()
     
 if __name__=='__main__':
     main()
