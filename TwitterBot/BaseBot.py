@@ -329,11 +329,11 @@ class BaseBot(tweepywrap.StreamListener):
         return time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
 
     def update_status(self, status, *args, **kargs):
-        logger.info(u'update:' + status)
+        logger.info(u'update: ' + status)
         return self.api.update_status(status, *args, **kargs)
 
     def destroy_status(self, status_id):
-        logger.info(u'delete:' + status_id)
+        logger.info(u'delete: %d' % int(status_id))
         return self.api.destroy_status(status_id)
 
     def reply_to(self, status, in_reply_to, cut=True):

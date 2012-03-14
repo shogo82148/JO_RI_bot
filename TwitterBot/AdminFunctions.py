@@ -55,14 +55,14 @@ class delete_hook(admin_hook):
             return False
         if self.is_allowed(status):
             if status.in_reply_to_status_id:
-                self.destroy_status(status.in_reply_to_status_id)
+                bot.destroy_status(status.in_reply_to_status_id)
             elif self._no_in_reply:
-                self.reply_to(u'%s [%s]' % 
+                bot.reply_to(u'%s [%s]' % 
                               (self._no_in_reply, bot.get_timestamp()) )
             return True
 
         if self._not_allowed:
-            self.reply_to(u'%s [%s]' % 
+            bot.reply_to(u'%s [%s]' % 
                           (self._not_allowed, bot.get_timestamp()) )
         return False
                               
