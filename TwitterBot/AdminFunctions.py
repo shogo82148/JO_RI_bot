@@ -4,6 +4,7 @@
 import TwitterBot
 import time
 import datetime
+import random
 
 class admin_hook(object):
     """特定ユーザしか実行できないコマンド"""
@@ -100,8 +101,11 @@ class history_hook(admin_hook):
         #履歴更新
         if author in history:
             if history[author]['count']==self.reply_limit and self.limit_msg:
-                self.reply_to(u'%s [%s]' %
-                              (self.limit_msg, bot.get_timestamp()),
+                msg = self.limit_msg
+                if isinstance(msg, (list, tuple)):
+                    msg = random.choice(msg)
+                bot.reply_to(u'%s [%s]' %
+                              (msg, bot.get_timestamp()),
                               status)
             history[author]['count'] += 1
             if history[author]['count']>self.reply_limit:

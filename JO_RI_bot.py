@@ -63,10 +63,17 @@ class JO_RI_bot(TwitterBot.BaseBot):
                 reset_cycle = 20*60,
                 allowed_users = config.BOT_USER))
         self.append_reply_hook(AdminFunctions.history_hook(
-                reply_limit = config.REPLY_LIMIT,
-                reset_cycle = config.RESET_CYCLE,
-                limit_msg = u'今、ちょっと取り込んでまして・・・'
-                              u'またのご利用をお待ちしております！'))
+                reply_limit = config.REPLY_LIMIT1,
+                reset_cycle = config.RESET_CYCLE1,
+                limit_msg = [u'今、ちょっと取り込んでまして・・・'
+                              u'またのご利用をお待ちしております！',
+                             u'もっと時間を有意義に使いませんか？']))
+        self.append_reply_hook(AdminFunctions.history_hook(
+                reply_limit = config.REPLY_LIMIT2,
+                reset_cycle = config.RESET_CYCLE2,
+                limit_msg = [u'今、ちょっと取り込んでまして・・・'
+                              u'またのご利用をお待ちしております！',
+                             u'もっと時間を有意義に使いませんか？']))
         self.append_reply_hook(JO_RI_bot.limit_hook)
 
         self.translator = Translator(config.BING_APP_KEY)
