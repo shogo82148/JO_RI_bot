@@ -24,7 +24,7 @@ logger = logging.getLogger("Bot.JO_RI")
 class GlobalCloneBot(CloneBot):
     def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db', crawler_api=None):
         super(GlobalCloneBot, self).__init__(crawl_user, mecab, log_file, db_file, crawler_api)
-        self.translator = Translator(config.BING_APP_KEY, 'ja', 'en')
+        self.translator = Translator(config.BING_APP_KEY, 'ja', 'en').translator
 
     def reply_hook(self, bot, status):
         """適当にリプライを返してあげる"""
@@ -121,6 +121,13 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_cron('00 7-23 * * *',
                          self.clone_bot.update_status,
                          name=u'Cron Update Status')
+        self.append_cron('30 11 * * *',
+                         self.bot_attack,
+                         name=u'Cron Bot Attack')
+
+    def bot_attack(self, bot):
+        name = random.choice(['aokcub_bot', 'FUCOROID', 'aokcub_bot', 'FUCOROID', 'JO_RI'])
+        bot.update_status('@%s %s' % (name, self.clone_bot.get_text()))
 
     def on_start(self):
         self.clone_bot.crawl(self)
