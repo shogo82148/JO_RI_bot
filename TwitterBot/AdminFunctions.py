@@ -4,6 +4,7 @@
 import TwitterBot
 import time
 import datetime
+import random
 
 class admin_hook(object):
     """特定ユーザしか実行できないコマンド"""
@@ -55,14 +56,14 @@ class delete_hook(admin_hook):
             return False
         if self.is_allowed(status):
             if status.in_reply_to_status_id:
-                self.destroy_status(status.in_reply_to_status_id)
+                bot.destroy_status(status.in_reply_to_status_id)
             elif self._no_in_reply:
-                self.reply_to(u'%s [%s]' % 
+                bot.reply_to(u'%s [%s]' % 
                               (self._no_in_reply, bot.get_timestamp()) )
             return True
 
         if self._not_allowed:
-            self.reply_to(u'%s [%s]' % 
+            bot.reply_to(u'%s [%s]' % 
                           (self._not_allowed, bot.get_timestamp()) )
         return False
                               
@@ -100,8 +101,11 @@ class history_hook(admin_hook):
         #履歴更新
         if author in history:
             if history[author]['count']==self.reply_limit and self.limit_msg:
-                self.reply_to(u'%s [%s]' %
-                              (self.limit_msg, bot.get_timestamp()),
+                msg = self.limit_msg
+                if isinstance(msg, (list, tuple)):
+                    msg = random.choice(msg)
+                bot.reply_to(u'%s [%s]' %
+                              (msg, bot.get_timestamp()),
                               status)
             history[author]['count'] += 1
             if history[author]['count']>self.reply_limit:

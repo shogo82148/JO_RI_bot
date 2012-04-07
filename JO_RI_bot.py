@@ -24,7 +24,7 @@ logger = logging.getLogger("Bot.JO_RI")
 class GlobalCloneBot(CloneBot):
     def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db', crawler_api=None):
         super(GlobalCloneBot, self).__init__(crawl_user, mecab, log_file, db_file, crawler_api)
-        self.translator = Translator(config.BING_APP_KEY, 'ja', 'en')
+        self.translator = Translator(config.BING_APP_KEY, 'ja', 'en').translator
 
     def reply_hook(self, bot, status):
         """適当にリプライを返してあげる"""
@@ -63,10 +63,17 @@ class JO_RI_bot(TwitterBot.BaseBot):
                 reset_cycle = 20*60,
                 allowed_users = config.BOT_USER))
         self.append_reply_hook(AdminFunctions.history_hook(
-                reply_limit = config.REPLY_LIMIT,
-                reset_cycle = config.RESET_CYCLE,
-                limit_msg = u'今、ちょっと取り込んでまして・・・'
-                              u'またのご利用をお待ちしております！'))
+                reply_limit = config.REPLY_LIMIT1,
+                reset_cycle = config.RESET_CYCLE1,
+                limit_msg = [u'今、ちょっと取り込んでまして・・・'
+                              u'またのご利用をお待ちしております！',
+                             u'もっと時間を有意義に使いませんか？']))
+        self.append_reply_hook(AdminFunctions.history_hook(
+                reply_limit = config.REPLY_LIMIT2,
+                reset_cycle = config.RESET_CYCLE2,
+                limit_msg = [u'今、ちょっと取り込んでまして・・・'
+                              u'またのご利用をお待ちしております！',
+                             u'もっと時間を有意義に使いませんか？']))
         self.append_reply_hook(JO_RI_bot.limit_hook)
 
         self.translator = Translator(config.BING_APP_KEY)
@@ -114,6 +121,13 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_cron('00 7-23 * * *',
                          self.clone_bot.update_status,
                          name=u'Cron Update Status')
+        self.append_cron('30 11 * * *',
+                         self.bot_attack,
+                         name=u'Cron Bot Attack')
+
+    def bot_attack(self, bot):
+        name = random.choice(['aokcub_bot', 'FUCOROID', 'aokcub_bot', 'FUCOROID', 'JO_RI'])
+        bot.update_status('@%s %s' % (name, self.clone_bot.get_text()))
 
     def on_start(self):
         self.clone_bot.crawl(self)
