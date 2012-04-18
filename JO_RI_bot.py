@@ -9,6 +9,7 @@ import datetime
 import random
 import logging
 
+from TwitterBot.modules import unicodehook
 from TwitterBot.modules.unya import Unya
 from TwitterBot.modules import gakushoku
 from TwitterBot.modules.CloneBot import CloneBot
@@ -107,6 +108,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_reply_hook(DateTimeHooks.hook)
         self.append_reply_hook(atnd.hook)
         self.append_reply_hook(Unya().hook)
+        self.append_reply_hook(unicodehook.hook)
 
         self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator.translator)
         self.append_reply_hook(self.wolfram.hook)
