@@ -164,6 +164,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
                       status)
         return True
 
+    re_use = re.compile(u'(採用|雇用)(して|しろ|しなさい)|雇(って|え|いなさい)|(就職|転職|入社)(したい|させろ)|(仕事|職|内定)[をが]?(ください|欲しい|くれ|ちょーだい|ちょうだい|頂戴)')
     def typical_response(self, status):
         """決まりきった応答"""
 
@@ -194,7 +195,12 @@ class JO_RI_bot(TwitterBot.BaseBot):
             else:
                 bot.reply_to(u'せんりゃくうううう！！！ [%s]' % bot.get_timestamp(), status)
             return True
-        
+
+        # 採用・不採用
+        # http://twitter.com/#!/2kkr/status/72250317244334080
+        if self.re_use.search(status.text):
+            bot.reply_to(random.choice([u"不採用 (乂'ω') [%s]", u"採用 ＼( 'ω')／ [%s]"]) % bot.get_timestamp(), status)
+            return True
         return False
 
     def is_spam(self, user):
