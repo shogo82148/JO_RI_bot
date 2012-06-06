@@ -89,6 +89,7 @@ def StreamProcess(queue, consumer_key, consumer_secret, access_key, access_secre
             logger.info('Retry to start user stream...')
         except Exception, e:
             logger.error(str(e).encode('utf-8'))
+            queue.put(('shutdown', ''))
             break
 
 class BotStream(tweepywrap.StreamListener):
@@ -206,10 +207,14 @@ class BaseBot(tweepywrap.StreamListener):
         while streaming_process.is_alive():
             try:
                 data_type, data = self._queue.get()
+                logger.debug('received %s task: %s', data_type, data)
                 if data_type=='stream':
                     self.on_data(data)
                 elif data_type=='cron':
                     self._cron_funcs[data]()
+                elif data_type=='shutdown':
+                    logger.warning('Shutdown Message Received')
+                    break
             except BotShutdown, e:
                 logger.warning('Shutdown Message Received')
                 break

@@ -11,6 +11,7 @@ import logging
 
 from TwitterBot.modules import unicodehook
 from TwitterBot.modules.unya import Unya
+from TwitterBot.modules import reflexa
 from TwitterBot.modules import gakushoku
 from TwitterBot.modules.CloneBot import CloneBot
 from TwitterBot.modules.dokusho import Dokusho
@@ -112,7 +113,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
 
         self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator.translator)
         self.append_reply_hook(self.wolfram.hook)
-
+        self.append_reply_hook(reflexa.hook)
         self.append_reply_hook(JO_RI_bot.typical_response)
 
         crawler_auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
