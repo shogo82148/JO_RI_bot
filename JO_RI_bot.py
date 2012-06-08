@@ -13,6 +13,7 @@ from TwitterBot.modules import unicodehook
 from TwitterBot.modules.unya import Unya
 from TwitterBot.modules import reflexa
 from TwitterBot.modules import gakushoku
+from TwitterBot.modules.amazon import Amazon
 from TwitterBot.modules.CloneBot import CloneBot
 from TwitterBot.modules.dokusho import Dokusho
 from TwitterBot.modules import busNUT
@@ -90,6 +91,14 @@ class JO_RI_bot(TwitterBot.BaseBot):
             config.AMAZON_SECRET_ACCESS_KEY)
         self.append_reply_hook(dokusho.hook)
         self.append_cron('0 0 * * mon', dokusho.crawl)
+
+        amazon = Amazon(
+            config.CRAWL_USER,
+            config.DOKUSHO_USER,
+            config.AMAZON_ACCESS_KEY_ID,
+            config.AMAZON_SECRET_ACCESS_KEY,
+            config.AMAZON_ASSOCIATE_TAG)
+        self.append_reply_hook(amazon.hook)
 
         self._gakushoku = gakushoku.GakuShoku(
                 config.MENU_EMAIL, config.MENU_PASSWORD,
