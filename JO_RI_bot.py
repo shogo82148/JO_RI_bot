@@ -8,7 +8,12 @@ import TwitterBot.AdminFunctions as AdminFunctions
 import datetime
 import random
 import logging
+
+from TwitterBot.modules import unicodehook
+from TwitterBot.modules.unya import Unya
+from TwitterBot.modules import reflexa
 from TwitterBot.modules import gakushoku
+from TwitterBot.modules.amazon import Amazon
 from TwitterBot.modules.CloneBot import CloneBot
 from TwitterBot.modules.dokusho import Dokusho
 from TwitterBot.modules import busNUT
@@ -87,6 +92,14 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_reply_hook(dokusho.hook)
         self.append_cron('0 0 * * mon', dokusho.crawl)
 
+        amazon = Amazon(
+            config.CRAWL_USER,
+            config.DOKUSHO_USER,
+            config.AMAZON_ACCESS_KEY_ID,
+            config.AMAZON_SECRET_ACCESS_KEY,
+            config.AMAZON_ASSOCIATE_TAG)
+        self.append_reply_hook(amazon.hook)
+
         self._gakushoku = gakushoku.GakuShoku(
                 config.MENU_EMAIL, config.MENU_PASSWORD,
                 config.MENU_ID, config.MENU_SHEET)
@@ -104,10 +117,12 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_reply_hook(DayOfTheWeek.hook)
         self.append_reply_hook(DateTimeHooks.hook)
         self.append_reply_hook(atnd.hook)
+        self.append_reply_hook(Unya().hook)
+        self.append_reply_hook(unicodehook.hook)
 
         self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator.translator)
         self.append_reply_hook(self.wolfram.hook)
-
+        self.append_reply_hook(reflexa.hook)
         self.append_reply_hook(JO_RI_bot.typical_response)
 
         crawler_auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
@@ -159,6 +174,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
                       status)
         return True
 
+    re_use = re.compile(u'(採用|雇用)(して|しろ|しなさい)|雇(って|え|いなさい)|(就職|転職|入社)(したい|させろ)|(仕事|職|内定)[をが]?(ください|欲しい|くれ|ちょーだい|ちょうだい|頂戴)')
     def typical_response(self, status):
         """決まりきった応答"""
 
@@ -189,7 +205,12 @@ class JO_RI_bot(TwitterBot.BaseBot):
             else:
                 bot.reply_to(u'せんりゃくうううう！！！ [%s]' % bot.get_timestamp(), status)
             return True
-        
+
+        # 採用・不採用
+        # http://twitter.com/#!/2kkr/status/72250317244334080
+        if self.re_use.search(status.text):
+            bot.reply_to(random.choice([u"不採用 (乂'ω') [%s]", u"採用 ＼( 'ω')／ [%s]"]) % bot.get_timestamp(), status)
+            return True
         return False
 
     def is_spam(self, user):

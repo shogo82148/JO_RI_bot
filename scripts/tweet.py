@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-import bot
 import tweepy
 import config
 import codecs
@@ -23,7 +22,7 @@ def main():
     if(re.match(r"[0-9.\-]+,[0-9.\-]+", sys.argv[-1])):
         arg["lat"], arg["long"] = sys.argv[-1].split(',')
         arg["status"] = " ".join(sys.argv[1:-1])
-    arg["status"] = "【お知らせ】" + arg["status"]
+    arg["status"] = arg["status"]
 
     api.update_status(**arg)
 

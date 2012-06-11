@@ -5,6 +5,9 @@ from threading import Thread, Lock, Event
 import datetime
 import time
 from croniter import croniter
+import logging
+
+logger = logging.getLogger("Bot.cron")
 
 class CronItem(object):
     def __init__(self, cron_time, it, func, args=(), kargs={}, cron_id=None):
@@ -67,7 +70,9 @@ class crondaemon(object):
         return False
 
     def _run(self):
+        logger.debug('Cron running...')
         while self.running:
+            logger.debug('Cron load task')
             self._event.clear()
             with self._lock:
                 cron = None
@@ -77,13 +82,17 @@ class crondaemon(object):
             if cron:
                 delta = total_seconds(cron.cron_time - datetime.datetime.now())
                 if delta>0:
+                    logger.debug('Cron: waiting %ds for %s', delta, cron.cron_id)
                     self._event.wait(delta)
             else:
+                logger.debug('Cron: there is no task. waiting for new task')
                 self._event.wait()
 
             if self._event.is_set():
+                logger.debug('Cron: Task list updated. Reload.')
                 continue
 
+            logger.debug('Cron: Execute task %s', cron.cron_id)
             if cron.it:
                 cron.cron_time = cron.it.get_next(ret_type=datetime.datetime)
             else:

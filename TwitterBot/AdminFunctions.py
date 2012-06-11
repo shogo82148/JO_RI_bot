@@ -98,6 +98,11 @@ class history_hook(admin_hook):
         history = self.reply_history
         now = time.time()
 
+        #古い履歴は削除
+        for name in history.keys():
+            if now-history[name]['time']>self.reset_cycle:
+                del history[name]
+
         #履歴更新
         if author in history:
             if history[author]['count']==self.reply_limit and self.limit_msg:
@@ -115,10 +120,4 @@ class history_hook(admin_hook):
                 'time': now,
                 'count': 1,
                 }
-
-        #古い履歴は削除
-        for name in history.keys():
-            if now-history[name]['time']>self.reset_cycle:
-                del history[name]
-
         return False
