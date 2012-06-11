@@ -35,6 +35,7 @@ class Result(object):
         isbn = item.xpath('.//ns:ASIN/text()', namespaces = namespaces)[0]
         item_dict = {}
         item_dict['isbn'] = isbn
+        item_dict['asin'] = isbn
         item_dict['title'] = item.xpath('.//ns:Title/text()', namespaces = namespaces)[0]
         item_dict['detailURL'] = item.xpath('.//ns:DetailPageURL/text()', namespaces=namespaces)[0]
         item_dict['links'] = dict(zip(
@@ -46,13 +47,82 @@ class Result(object):
     def geturl(self):
         return self.tree.xpath('//ns:MoreSearchResultsUrl/text()', namespaces = namespaces)[0]
 
+class Cart(object):
+    def __init__(self, amazon, owner, CartId = None, HMAC = None):
+        self._amazon = amazon
+        self._CartId = CartId
+        self._HMAC = HMAC
+        self.owner = owner
+        self.url = None
+
+    def add(self, asin):
+        karg = {}
+        karg['Item.1.ASIN'] = asin
+        karg['Item.1.Quantity'] = 1
+        if self._CartId:
+            logger.debug('Adding %s to cart(%s,%s)', asin, self._CartId, self._HMAC)
+            karg['CartId'] = self._CartId
+            karg['HMAC'] = self._HMAC
+            xml = self._amazon.CartAdd(**karg)
+        else:
+            logger.debug('Creating new cart')
+            xml = self._amazon.CartCreate(**karg)
+        tree = lxml.etree.fromstring(xml)
+        msg = tree.xpath('//ns:Message/text()', namespaces=namespaces)
+        if len(msg)>0:
+            logger.error('Error: %s', msg[0])
+            return False
+        self.url = tree.xpath('//ns:PurchaseURL/text()', namespaces=namespaces)[0]
+        self._CartId = tree.xpath('//ns:CartId/text()', namespaces=namespaces)[0]
+        self._HMAC = tree.xpath('//ns:HMAC/text()', namespaces=namespaces)[0]
+        return True
+
+class TweetBuy(object):
+    def __init__(self, asin, amazon, cart=None):
+        self._asin = asin
+        self._amazon = amazon
+        self.cart = cart
+        return
+
+    def similar(self, asin):
+        res = self._amazon.SimilarityLookup(
+            ItemId = asin
+            )
+        xml = res.decode('utf-8')
+        return Result(xml)
+
+    def buy(self, bot, status):
+        cart = self.cart
+        if cart is None or cart.owner != status.author.screen_name:
+            cart = Cart(self._amazon, status.author.screen_name)
+            if cart.add(self._asin):
+                text = u'お買い上げありがとうございます！商品はこちらのURLからご購入いただけます。 %s [%s]' % (cart.url, bot.get_timestamp())
+                bot.api.send_direct_message(user=status.author.id, text=text)
+                self.cart = cart
+                return True
+            return False
+        else:
+            return cart.add(self._asin)
+
+    def reply_to(self, bot, status, msg=None, failmsg=None):
+        msg = msg or u'お買い上げありがとうございます！この商品を買った人はこんな商品も買っています'
+        res = self.similar(self._asin)
+        if len(res)==0:
+            msg = failmsg or u'お買い上げありがとうございます！'
+        r = Tweet(res, amazon=self._amazon, cart=self.cart, msg=msg)
+        r.reply_to(bot, status)
+        return True
+
 class Tweet(object):
-    def __init__(self, result, no=0):
+    def __init__(self, result, no=0, amazon=None, cart=None, msg=None):
         self.result = result
         self.no = no
+        self._amazon = amazon
+        self._cart = cart
+        self._msg = msg
 
     def reply_to(self, bot, status):
-        msg = random.choice(Amazon.messages)
+        msg = self._msg or random.choice(Amazon.messages)
         if len(self.result)==0:
             bot.reply_to(
                 u'%s http://www.amazon.co.jp/ [%s]' % (msg, bot.get_timestamp()), status)
@@ -79,25 +149,44 @@ class Tweet(object):
         bot.reply_to(u'ほい %s [%s]' % (self.result.geturl(), bot.get_timestamp()), status, cut=False)
         return
 
+    re_relation = re.compile(u'(?:関連)')
+    re_buy = re.compile(u'(?:それ|その|そんな).*(?:買|購入|iyh|欲)')
     re_other = re.compile(u'ほか|他|違う|ちがう|別|べつ')
     re_detail = re.compile(u'検索結果')
     def hook(self, bot, status):
         if self.no>=len(self.result):
             return
 
-        m = self.re_other.search(status.text)
+        text = unicodedata.normalize('NFKC', status.text)
+        text = text.lower()
+
+        m = self.re_buy.search(text)
         if m:
-            r = Tweet(self.result, self.no+1)
+            r = TweetBuy(self.result[self.no]['asin'], self._amazon, cart=self._cart)
+            if r.buy(bot, status):
+                r.reply_to(bot, status)
+            else:
+                r.reply_to(bot, status, msg=u'在庫が無いみたい。こんな商品はいかが？', failmsg=u'在庫が無いみたい。')
+            return True
+
+        m = self.re_relation.search(text)
+        if m:
+            r = TweetBuy(self.result[self.no]['asin'], self._amazon, cart=self._cart)
+            r.reply_to(bot, status, msg=u'この商品を買った人はこんな商品も買っています', failmsg=u'関連商品が見つからなかったよ')
+            return True
+
+        m = self.re_other.search(text)
+        if m:
+            r = Tweet(self.result, no=self.no+1, amazon=self._amazon, cart=self._cart)
             r.reply_to(bot, status)
             return True
 
-        m = self.re_detail.search(status.text)
+        m = self.re_detail.search(text)
         if m:
             self.update_detail(bot, status)
             return True
 
         return
-
 
 class Amazon(object):
     searchIndexDic = {
@@ -164,8 +253,8 @@ class Amazon(object):
         self._user = user
         self._user_name = user_name
         self._amazon = bottlenose.Amazon(
-            access_key, secret_key, Region='JP')
-        self._associate_tag = tag
+            access_key, secret_key, Region='JP',
+            AssociateTag = tag)
 
         indexes = u'(?P<index>%s)' % '|'.join(Amazon.searchIndexDic.iterkeys())
         keyword = u'(?P<keyword>.*?)'
@@ -177,8 +266,7 @@ class Amazon(object):
             Keywords=keywords,
             SearchIndex=index,
             ItemPage=str(page),
-            ResponseGroup='Small',
-            AssociateTag=self._associate_tag)
+            ResponseGroup='Small')
         xml = res.decode('utf-8')
         return Result(xml)
 
@@ -194,7 +282,7 @@ class Amazon(object):
         keyword = m.group('keyword').strip()
         index = Amazon.searchIndexDic.get(m.group('index') or 'すべて', 'All')
         logger.debug('Keyword: %s, SearchIndex: %s', keyword, index)
-        tweet = Tweet(self.search(keyword, index=index))
+        tweet = Tweet(self.search(keyword, index=index), amazon=self._amazon)
         tweet.reply_to(bot, status)
         return True
 
