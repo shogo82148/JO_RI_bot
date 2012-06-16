@@ -47,7 +47,7 @@ class SearchResult(object):
     def update_status(self, bot, status):
         no = self.no
         if no>=len(self.result['events']):
-            bot.reply_to(u'もうないよ [%s]' % bot.timestamp(), status)
+            bot.reply_to(u'もうないよ [%s]' % bot.get_timestamp(), status)
             return
         event = self.result['events'][no]
         limit = 140

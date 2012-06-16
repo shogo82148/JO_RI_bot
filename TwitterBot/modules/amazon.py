@@ -136,6 +136,7 @@ class Tweet(object):
             limit = 140 - len('@%s ' % status.author.screen_name)
             limit -= len(msg)
             limit -= 21 # For space and url
+            limit -= len(timestamp)
             if len(title)>limit:
                 title = title[0:limit-1] + u'…'
             new_status = bot.reply_to(u'%s%s %s%s' % (msg, title, url, timestamp), status, cut=False)
