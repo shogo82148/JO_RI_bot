@@ -23,7 +23,8 @@ _re_milliseconds = re.compile(ur'(\d+)ミリ秒')
 _re_on_time1 = re.compile(ur'(?P<hour>\d\d?)時((?P<minute>\d\d?)分)?((?P<second>\d\d?)秒)?に')
 _re_on_time2 = re.compile(ur'(?P<hour>\d\d?):(?P<minute>\d\d?)(:(?P<second>\d\d?))?に')
 _re_on_time3 = re.compile(ur'(\d+)に')
-
+_re_3minutes = re.compile(ur'湯入')
+_re_40seconds = re.compile(ur'連れてい?って')
 def gettime(text):
     now = datetime.datetime.now()
     m = _re_on_time1.search(text) or _re_on_time2.search(text)
@@ -75,20 +76,14 @@ def gettime(text):
             milliseconds=milliseconds)
 
 def hook(bot, status):
-    text = unicodedata.normalize('NFKC',status.text)
-    m = _re_wakeup1.search(text) or _re_wakeup2.search(text)
-    if not m:
-        return False
-    name = 'wakeup-' + str(status.id)
-    waketime = gettime(text)
-    is_dm = not (_re_dm.search(text) is None)
-
-    def wake(bot):
-        text = u'時間だぞー！ [%s]' % bot.get_timestamp()
-        if is_dm:
-            bot.api.send_direct_message(user=status.author.id, text=text)
-        else:
-            bot.reply_to(text , status)
+    def makewakehook(message = u'時間だぞー！'):
+        def wake(bot):
+            text = u'%s [%s]' % (message, bot.get_timestamp())
+            if is_dm:
+                bot.api.send_direct_message(user=status.author.id, text=text)
+            else:
+                bot.reply_to(text , status)
+        return wake
 
     def cancel_hook(bot, new_status):
         m = _re_cancel.search(new_status.text)
@@ -100,6 +95,31 @@ def hook(bot, status):
         bot.delete_reply_hook(name)
         return True
 
+    text = unicodedata.normalize('NFKC',status.text)
+    is_dm = not (_re_dm.search(text) is None)
+    name = 'wakeup-' + str(status.id)
+    if _re_3minutes.search(text):
+        ok_status = bot.reply_to(u'3分間待ってやる [%s]' % bot.get_timestamp(), status)
+        bot.append_reply_hook(cancel_hook,
+                              name = name,
+                              in_reply_to = ok_status.id,
+                              time_out = 3*60,
+                              on_time_out = makewakehook(u'時間だ！！答えを聞こう！！'))
+        return True
+    elif _re_40seconds.search(text):
+        ok_status = bot.reply_to(u'40秒で支度しな [%s]' % bot.get_timestamp(), status)
+        bot.append_reply_hook(cancel_hook,
+                              name = name,
+                              in_reply_to = ok_status.id,
+                              time_out = 40,
+                              on_time_out = makewakehook(u'時間だ！！'))
+        return True
+
+    m = _re_wakeup1.search(text) or _re_wakeup2.search(text)
+    if not m:
+        return False
+    waketime = gettime(text)
+
     if waketime is None or waketime-datetime.datetime.now()<datetime.timedelta(seconds=9):
         ng_message = random.choice([
                 u'いやだ！',
@@ -107,7 +127,7 @@ def hook(bot, status):
                 u'わけがわからないよ',
                 u'400 Bad Request'])
         bot.reply_to(ng_message + u" [%s]" % bot.get_timestamp(), status)
-    else:        
+    else:
         ok_message = random.choice([
                 u'おｋ ',
                 u'いいよー ',
@@ -124,5 +144,5 @@ def hook(bot, status):
                               name = name,
                               in_reply_to = ok_status.id,
                               time_out = waketime-datetime.datetime.now(),
-                              on_time_out = wake)
+                              on_time_out = makewakehook())
     return True
