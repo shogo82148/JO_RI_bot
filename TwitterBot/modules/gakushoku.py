@@ -181,9 +181,6 @@ class GakuShoku(object):
                 selections.append(dish)
 
         selections.append(u'油そば')
-        selections.append(u'油そば')
-        selections.append(u'油そば')
-        selections.append(u'油そば')
 
         #第二食堂定食
         dish_time = (u'晩御飯' if is_dinner else u'お昼ごはん')
