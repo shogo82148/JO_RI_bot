@@ -59,14 +59,16 @@ class APIMock(object):
             print '\tlat=%s' % self.__to_string(source)
         if place_id:
             print '\tlat=%s' % self.__to_string(place_id)
-        status = Mock()
-        status.id = 2345678900
-        status.text = status
-        status.in_reply_to_status_id = in_reply_to_status_id
-        status.created_at = datetime.datetime.now()
-        status.author = Mock()
-        status.author.screen_name = 'test_user'
-        return status
+        s = Mock()
+        s.id = 2345678900
+        s.text = status
+        s.in_reply_to_status_id = in_reply_to_status_id
+        s.created_at = datetime.datetime.now()
+        s.author = Mock()
+        s.author.screen_name = u'test_user'
+        s.author.name = u'テスト垢'
+        s.author.id = 123
+        return s
 
     def rate_limit_status(self):
         return {"reset_time_in_seconds": 1277485629,
@@ -207,7 +209,6 @@ class BaseBot(tweepywrap.StreamListener):
         while streaming_process.is_alive():
             try:
                 data_type, data = self._queue.get()
-                logger.debug('received %s task: %s', data_type, data)
                 if data_type=='stream':
                     self.on_data(data)
                 elif data_type=='cron':
@@ -246,6 +247,8 @@ class BaseBot(tweepywrap.StreamListener):
         status.created_at = datetime.datetime.now()
         status.author = Mock()
         status.author.screen_name = 'test_user'
+        status.author.name = u'テスト垢'
+        status.id = 123
         self.on_status(status)
 
     def test_cron(self, cron_id):
