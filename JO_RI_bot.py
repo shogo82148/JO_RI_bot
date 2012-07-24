@@ -249,6 +249,12 @@ class JO_RI_bot(TwitterBot.BaseBot):
                 bot.reply_to(u'せんりゃくうううう！！！ [%s]' % bot.get_timestamp(), status)
             return True
 
+        #足の裏→わーお
+        # https://twitter.com/s2_EV/status/227272548512051200
+        if status.text.find(u'足の裏')>=0:
+            bot.reply_to(u'わーお！ [%s]' % bot.get_timestamp(), status)
+            return True
+
         return False
 
     def is_spam(self, user):
