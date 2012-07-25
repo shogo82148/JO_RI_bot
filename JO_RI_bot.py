@@ -255,6 +255,11 @@ class JO_RI_bot(TwitterBot.BaseBot):
             bot.reply_to(u'わーお！ [%s]' % bot.get_timestamp(), status)
             return True
 
+        #バルス
+        if status.text.find(u'バルス')>=0:
+            bot.reply_to(u'目がぁぁぁ、目がぁぁぁぁ・・・これで満足ですか？ [%s]' % bot.get_timestamp(), status)
+            return True
+
         return False
 
     def is_spam(self, user):
