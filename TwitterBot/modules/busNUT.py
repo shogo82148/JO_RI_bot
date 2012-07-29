@@ -122,6 +122,7 @@ def BusIterator(time_table, start=None):
             yield _to_datetime(today, item[0]), _to_datetime(today, item[1]), info
 
 class Bus(object):
+    _re_charge = re.compile(u'バス.*(値|金)')
     _re_to_station = re.compile(ur'駅(着|行|ゆき|いき|まで)')
     _re_to_nut = re.compile(ur'(技大|大学)(着|行|ゆき|いき|まで)')
 
@@ -133,6 +134,9 @@ class Bus(object):
         return True
 
     def get_message(self, text, now = None):
+        if self._re_charge.search(text):
+            return u"310円"
+
         if text.find(u'バス')<0 or text.find(u'時')<0:
             return False
 
