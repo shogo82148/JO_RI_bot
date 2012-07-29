@@ -146,11 +146,28 @@ class Bus(object):
         elif text.find(u'技大')>=0 or text.find(u'大学')>=0:
             from_stop = 'nut'
 
+        bus_type = 'next'
+        if text.find(u'始発')>=0 or text.find(u'最初')>=0:
+            bus_type = 'first'
+        elif text.find(u'最終')>=0 or text.find(u'最後')>=0:
+            bus_type = 'last'
+
         now = now or datetime.datetime.now()
-        if from_stop=='nut':
-            return self._next_bus_nut(now)
-        else:
-            return self._next_bus_station(now)
+        if bus_type == 'next':
+            if from_stop=='nut':
+                return self._next_bus_nut(now)
+            else:
+                return self._next_bus_station(now)
+        elif bus_type == 'first':
+            if from_stop=='nut':
+                return self._first_bus_nut(now)
+            else:
+                return self._first_bus_station(now)
+        elif bus_type == 'last':
+            if from_stop == 'nut':
+                return self._last_bus_nut(now)
+            else:
+                return self._last_bus_station(now)
         return u''
 
     def _next_bus_nut(self, now):
@@ -204,6 +221,65 @@ class Bus(object):
         else:
             #技大入り口で停車
             text += u'技大入口停車'
+        return text
+
+    def _first_bus_nut(self, now):
+        midnight = now.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+        busiter = BusIterator(nut_time_table, midnight)
+        next_start = next(busiter)
+        if next_start[0]<now:
+            midnight += datetime.timedelta(days=1)
+            busiter = BusIterator(nut_time_table, midnight)
+            next_start = next(busiter)
+        next_next_start = next(busiter)
+        text = u'技大発の始発バスは%d:%02d発、%d:%02d長岡駅着。これを逃すと次は%d:%02d発、%d:%02d着だよ。' % (
+            next_start[0].hour, next_start[0].minute, next_start[1].hour, next_start[1].minute,
+            next_next_start[0].hour, next_next_start[0].minute, next_next_start[1].hour, next_next_start[1].minute)
+        return text
+
+    def _first_bus_station(self, now):
+        midnight = now.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+        busiter = BusIterator(station_time_table, midnight)
+        next_start = next(busiter)
+        if next_start[0]<now:
+            midnight += datetime.timedelta(days=1)
+            busiter = BusIterator(nut_time_table, midnight)
+            next_start = next(busiter)
+        next_next_start = next(busiter)
+        text = u'長岡駅発の始発バスは%s。' % self._from_station(next_start)
+        if not next_start[1]:
+            text += u'技大前には止まりません。'
+        text += u'これを逃すと次は%sだよ。' % self._from_station(next_next_start)
+        return text
+
+    def _last_bus_nut(self, now):
+        today = now.date()
+        midnight = now.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+        busiter = BusIterator(nut_time_table, midnight)
+        next_start = next(busiter)
+        next_next_start = next(busiter)
+        while next_next_start[0].date()==today:
+            next_start, next_next_start = next_next_start, next(busiter)
+        text = u'技大発の最終バスは%d:%02d発、%d:%02d長岡駅着。これを逃すと次は明日の%d:%02d発、%d:%02d着だよ。' % (
+            next_start[0].hour, next_start[0].minute, next_start[1].hour, next_start[1].minute,
+            next_next_start[0].hour, next_next_start[0].minute, next_next_start[1].hour, next_next_start[1].minute)
+        return text
+
+    def _last_bus_station(self, now):
+        today = now.date()
+        midnight = now.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+        busiter = BusIterator(station_time_table, midnight)
+        next_start = next(busiter)
+        next_next_start = next(busiter)
+        last_nut_bus = None
+        while next_next_start[0].date()==today:
+            if next_start[1]:
+                last_nut_bus = next_start
+            next_start, next_next_start = next_next_start, next(busiter)
+        text = u'長岡駅発の最終バスは%s。' % self._from_station(next_start)
+        if not next_start[1]:
+            text += u'技大前には止まりません。技大行き最終は%s。' % self._from_station(last_nut_bus)
+        text += u'これを逃すと次は明日の%sだよ。' % self._from_station(next_next_start)
         return text
 
 def main():
