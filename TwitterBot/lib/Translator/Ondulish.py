@@ -23,7 +23,7 @@ class Ondulish:
                 yomi += features[7]
             else:
                 yomi += node.surface
-            
+
             node = node.next
         return jcconv.hira2kata(yomi.decode('utf-8'))
 
@@ -34,7 +34,6 @@ class Ondulish:
 
     _re_ondulish = re.compile(u'[ｱ-ﾝﾞﾟ]{5,}')
     def detect(self, text):
-        print text
         return not self._re_ondulish.search(text) is None
 
 if __name__=='__main__':
