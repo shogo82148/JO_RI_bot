@@ -17,6 +17,8 @@ JO_RI_botはPython2.6以降で動作します。
 * jcconv
 * bottlenose
 * croniter
+* gdata
+* lxml
 * MeCab
 
 次にツイッターアカウントなどの設定を行います。
