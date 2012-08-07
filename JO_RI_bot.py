@@ -11,6 +11,7 @@ import logging
 import urllib
 
 from TwitterBot.modules import friendship
+from TwitterBot.modules import fizzbuzz
 from TwitterBot.modules import unicodehook
 from TwitterBot.modules.unya import Unya
 from TwitterBot.modules import reflexa
@@ -128,6 +129,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_reply_hook(reflexa.hook)
         self.append_reply_hook(JO_RI_bot.typical_response)
         self.append_reply_hook(friendship.breaker)
+        self.append_reply_hook(fizzbuzz.hook)
 
         crawler_auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
         crawler_auth.set_access_token(config.CRAWLER_ACCESS_KEY, config.CRAWLER_ACCESS_SECRET)
