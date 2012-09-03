@@ -14,6 +14,7 @@ import logging
 import logging.handlers
 from multiprocessing import Process, Lock, Queue
 import traceback
+from TwitterStream import StreamProcess
 
 logger = logging.getLogger("Bot")
 
@@ -76,58 +77,13 @@ class APIMock(object):
                 "hourly_limit": 350,
                 "reset_time": "Fri Jun 25 17:07:09 +0000 2010"}
 
-def StreamProcess(queue, consumer_key, consumer_secret, access_key, access_secret):
-    """ユーザストリームプロセスの実行内容"""
-    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-    auth.set_access_token(access_key, access_secret)
-    stream = tweepy.Stream(auth, BotStream(queue))
-    logger.info('User Stream Starting...')
-    while True:
-        try:
-            stream.userstream(async=False)
-        except httplib.HTTPException, e:
-            logger.error(str(e).encode('utf-8'))
-            time.sleep(10)
-            logger.info('Retry to start user stream...')
-        except Exception, e:
-            logger.error(str(e).encode('utf-8'))
-            queue.put(('shutdown', ''))
-            break
-
-class BotStream(tweepywrap.StreamListener):
-    """ユーザーストリームのリスナ"""
-    def __init__(self, queue):
-        super(BotStream, self).__init__()
-        self.queue = queue
-
-    def on_data(self, data):
-        """メインプロセスへ通知"""
-        self.queue.put(('stream', data))
-        
 class BaseBot(tweepywrap.StreamListener):
     def __init__(self, consumer_key, consumer_secret, access_key, access_secret):
-        auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        auth.set_access_token(access_key, access_secret)
-        api = tweepy.API(auth, retry_count=10, retry_delay=1)
-        super(BaseBot, self).__init__(api=api)
         #API設定
         self._consumer_key = consumer_key
         self._consumer_secret = consumer_secret
         self._access_key = access_key
         self._access_secret = access_secret
-        self.api = api
-
-        #アカウント設定の読み込み
-        self._name = self.api.me().screen_name
-        self._re_reply_to_me = re.compile(r'^@%s' % self._name, re.IGNORECASE)
-
-        #やりとりの設定
-        self._queue = Queue()
-        self._cron = crondaemon.crondaemon()
-        self._reply_hooks = []
-        self._reply_hook_id = 0
-        self._cron_funcs = {}
-        self._cron_id = 0
 
     def setup_logger(self, opts):
         # setup output
@@ -158,10 +114,11 @@ class BaseBot(tweepywrap.StreamListener):
                           default='',
                           help="Filename for log output",
                           )
-        parser.add_option('-r', '--reply',
-                          dest='reply',
-                          default='',
-                          help="Test reply to the bot",
+        parser.add_option('-i', '--interactive',
+                          dest='interactive',
+                          default=False,
+                          action='store_true',
+                          help="Interactive Test",
                           )
         parser.add_option('-c', '--cron',
                           dest='cron',
@@ -184,8 +141,8 @@ class BaseBot(tweepywrap.StreamListener):
         parser = self.setup_optparser()
         options, args = parser.parse_args(sys.argv)
         self.setup_logger(options)
-        if options.reply:
-            self.test_reply(options.reply)
+        if options.interactive:
+            self.start_interactive()
         elif options.cron:
             self.test_cron(options.cron)
         else:
@@ -194,18 +151,36 @@ class BaseBot(tweepywrap.StreamListener):
     def start(self):
         """ボットの動作を開始する"""
 
+        # API初期化
+        auth = tweepy.OAuthHandler(self._consumer_key, self._consumer_secret)
+        auth.set_access_token(self._access_key, self._access_secret)
+        api = tweepy.API(auth, retry_count=10, retry_delay=1)
+        self.api = api
+
+        #アカウント設定の読み込み
+        self._name = self.api.me().screen_name
+        self._re_reply_to_me = re.compile(r'^@%s' % self._name, re.IGNORECASE)
+
+        #やりとりの設定
+        self._queue = Queue()
+        self._cron = crondaemon.crondaemon()
+        self._reply_hooks = []
+        self._reply_hook_id = 0
+        self._cron_funcs = {}
+        self._cron_id = 0
+
         #ユーザストリームを別プロセスで開始
         args = (self._queue, self._consumer_key, self._consumer_secret, self._access_key, self._access_secret)
         streaming_process = Process(target=StreamProcess, args = args)
         streaming_process.daemon = True
         streaming_process.start()
-        
+
         #cronサービスを開始
         logger.info(u'Cron Daemon Starting...')
         self._cron.start(async=True)
 
+        # メインループ
         self.on_start()
-
         while streaming_process.is_alive():
             try:
                 data_type, data = self._queue.get()
@@ -230,26 +205,73 @@ class BaseBot(tweepywrap.StreamListener):
             self.on_shutdown()
         except Exception, e:
             logger.error(str(e).decode('utf-8'))
-        
+
         self._cron.stop()
         logger.info(u'Shutdown')
 
-    def test_reply(self, reply):
-        class Mock(object):
-            pass
-        if isinstance(reply, str):
-            reply = reply.decode('utf-8')
-        self.api = APIMock()
-        status = Mock()
-        status.id = 1234567890
-        status.text = '@' + self._name + ' ' + reply
-        status.in_reply_to_status_id = None
-        status.created_at = datetime.datetime.now()
-        status.author = Mock()
-        status.author.screen_name = 'test_user'
-        status.author.name = u'テスト垢'
-        status.id = 123
-        self.on_status(status)
+    def start_interactive(self):
+        """コンソール経由でボットとはなす"""
+
+        import json
+        import MockTweepy
+
+        # API初期化
+        api = MockTweepy.API()
+        self.api = api
+
+        #アカウント設定の読み込み
+        self._name = self.api.me().screen_name
+        self._re_reply_to_me = re.compile(r'^@%s' % self._name, re.IGNORECASE)
+
+        #やりとりの設定
+        self._queue = Queue()
+        self._cron = crondaemon.crondaemon()
+        self._reply_hooks = []
+        self._reply_hook_id = 0
+        self._cron_funcs = {}
+        self._cron_id = 0
+
+        # デバッグ用ユーザの設定
+        user = MockTweepy.getUser('test')
+
+        # メインループ
+        self.on_start()
+        latest_id = None
+        while True:
+            try:
+                print '>>',
+                sys.stdout.flush()
+                text = raw_input().decode('utf-8')
+                a = text.split()
+                if len(a)==0:
+                    pass
+                elif a[0] == 'shutdown':
+                    raise BotShutdown()
+                else:
+                    text = u'@' + self._name + u' ' + text
+                    status = api.getStatus(text=text, user=user, in_reply_to_status_id=latest_id)
+                    self.on_data(json.dumps(status))
+                    latest_id = api.getLatestId()
+                    print latest_id
+
+            except BotShutdown, e:
+                logger.warning('Shutdown Message Received')
+                break
+            except KeyboardInterrupt, e:
+                logger.warning('Keyboard Interrupt')
+                break
+            except EOFError, e:
+                break
+            except Exception, e:
+                logger.error(str(e).decode('utf-8'))
+                logger.error(traceback.format_exc())
+
+        try:
+            self.on_shutdown()
+        except Exception, e:
+            logger.error(str(e).decode('utf-8'))
+
+        logger.info(u'Shutdown')
 
     def test_cron(self, cron_id):
         self.api = APIMock()
