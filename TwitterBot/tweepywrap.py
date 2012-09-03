@@ -9,13 +9,13 @@ from tweepy import Status
 class StreamListener(tweepy.StreamListener):
     """ tweepyのStreamListenerのラッパ """
     def __init__(self, api=None):
-        self.__api = api or tweepy.API()
+        self.api = api or tweepy.API()
 
     def on_data(self, data):
         if not data:
             return
         json_data = json.loads(data)
-        api = self.__api
+        api = self.api
         
         if not isinstance(json_data, dict):
             return

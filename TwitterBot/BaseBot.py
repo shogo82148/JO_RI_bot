@@ -79,28 +79,11 @@ class APIMock(object):
 
 class BaseBot(tweepywrap.StreamListener):
     def __init__(self, consumer_key, consumer_secret, access_key, access_secret):
-        auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        auth.set_access_token(access_key, access_secret)
-        api = tweepy.API(auth, retry_count=10, retry_delay=1)
-        super(BaseBot, self).__init__(api=api)
         #API設定
         self._consumer_key = consumer_key
         self._consumer_secret = consumer_secret
         self._access_key = access_key
         self._access_secret = access_secret
-        self.api = api
-
-        #アカウント設定の読み込み
-        self._name = self.api.me().screen_name
-        self._re_reply_to_me = re.compile(r'^@%s' % self._name, re.IGNORECASE)
-
-        #やりとりの設定
-        self._queue = Queue()
-        self._cron = crondaemon.crondaemon()
-        self._reply_hooks = []
-        self._reply_hook_id = 0
-        self._cron_funcs = {}
-        self._cron_id = 0
 
     def setup_logger(self, opts):
         # setup output
@@ -166,6 +149,24 @@ class BaseBot(tweepywrap.StreamListener):
 
     def start(self):
         """ボットの動作を開始する"""
+
+        # API初期化
+        auth = tweepy.OAuthHandler(self._consumer_key, self._consumer_secret)
+        auth.set_access_token(self._access_key, self._access_secret)
+        api = tweepy.API(auth, retry_count=10, retry_delay=1)
+        self.api = api
+
+        #アカウント設定の読み込み
+        self._name = self.api.me().screen_name
+        self._re_reply_to_me = re.compile(r'^@%s' % self._name, re.IGNORECASE)
+
+        #やりとりの設定
+        self._queue = Queue()
+        self._cron = crondaemon.crondaemon()
+        self._reply_hooks = []
+        self._reply_hook_id = 0
+        self._cron_funcs = {}
+        self._cron_id = 0
 
         #ユーザストリームを別プロセスで開始
         args = (self._queue, self._consumer_key, self._consumer_secret, self._access_key, self._access_secret)

@@ -57,6 +57,8 @@ class JO_RI_bot(TwitterBot.BaseBot):
                                         config.CONSUMER_SECRET,
                                         config.ACCESS_KEY,
                                         config.ACCESS_SECRET)
+
+    def on_start(self):
         self.append_reply_hook(AdminFunctions.shutdown_hook(
                 allowed_users = config.ADMIN_USER,
                 command = set([u'バルス', u'シャットダウン', u'shutdown', u'halt', u':q!', u'c-x c-c'])),
@@ -146,11 +148,6 @@ class JO_RI_bot(TwitterBot.BaseBot):
                          self.bot_attack,
                          name=u'Cron Bot Attack')
 
-    def bot_attack(self, bot):
-        name = random.choice(['aokcub_bot', 'FUCOROID', 'aokcub_bot', 'FUCOROID', 'JO_RI'])
-        bot.update_status('@%s %s' % (name, self.clone_bot.get_text()))
-
-    def on_start(self):
         self.clone_bot.crawl(self)
         self.update_status(random.choice([
                     u'【お知らせ】アプリボワゼ！颯爽登場！銀河美少年タウバーン！ [%s]',
@@ -158,6 +155,10 @@ class JO_RI_bot(TwitterBot.BaseBot):
                     u'【お知らせ】ほろーん[%s]',
                     u'【お知らせ】起動なう[%s]',
                     ]) % self.get_timestamp())
+
+    def bot_attack(self, bot):
+        name = random.choice(['aokcub_bot', 'FUCOROID', 'aokcub_bot', 'FUCOROID', 'JO_RI'])
+        bot.update_status('@%s %s' % (name, self.clone_bot.get_text()))
 
     def on_shutdown(self):
         self.update_status(random.choice([
