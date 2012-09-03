@@ -114,10 +114,11 @@ class BaseBot(tweepywrap.StreamListener):
                           default='',
                           help="Filename for log output",
                           )
-        parser.add_option('-r', '--reply',
-                          dest='reply',
-                          default='',
-                          help="Test reply to the bot",
+        parser.add_option('-i', '--interactive',
+                          dest='interactive',
+                          default=False,
+                          action='store_true',
+                          help="Interactive Test",
                           )
         parser.add_option('-c', '--cron',
                           dest='cron',
@@ -140,8 +141,8 @@ class BaseBot(tweepywrap.StreamListener):
         parser = self.setup_optparser()
         options, args = parser.parse_args(sys.argv)
         self.setup_logger(options)
-        if options.reply:
-            self.test_reply(options.reply)
+        if options.interactive:
+            self.start_interactive()
         elif options.cron:
             self.test_cron(options.cron)
         else:
@@ -178,10 +179,8 @@ class BaseBot(tweepywrap.StreamListener):
         logger.info(u'Cron Daemon Starting...')
         self._cron.start(async=True)
 
+        # メインループ
         self.on_start()
-        self.run(streaming_process)
-
-    def run(self, streaming_process):
         while streaming_process.is_alive():
             try:
                 data_type, data = self._queue.get()
@@ -210,22 +209,66 @@ class BaseBot(tweepywrap.StreamListener):
         self._cron.stop()
         logger.info(u'Shutdown')
 
-    def test_reply(self, reply):
-        class Mock(object):
-            pass
-        if isinstance(reply, str):
-            reply = reply.decode('utf-8')
-        self.api = APIMock()
-        status = Mock()
-        status.id = 1234567890
-        status.text = '@' + self._name + ' ' + reply
-        status.in_reply_to_status_id = None
-        status.created_at = datetime.datetime.now()
-        status.author = Mock()
-        status.author.screen_name = 'test_user'
-        status.author.name = u'テスト垢'
-        status.id = 123
-        self.on_status(status)
+    def start_interactive(self):
+        """コンソール経由でボットとはなす"""
+
+        import json
+        import MockTweepy
+
+        # API初期化
+        api = MockTweepy.API()
+        self.api = api
+
+        #アカウント設定の読み込み
+        self._name = self.api.me().screen_name
+        self._re_reply_to_me = re.compile(r'^@%s' % self._name, re.IGNORECASE)
+
+        #やりとりの設定
+        self._queue = Queue()
+        self._cron = crondaemon.crondaemon()
+        self._reply_hooks = []
+        self._reply_hook_id = 0
+        self._cron_funcs = {}
+        self._cron_id = 0
+
+        # デバッグ用ユーザの設定
+        user = MockTweepy.getUser('test')
+
+        # メインループ
+        self.on_start()
+        while True:
+            try:
+                print '>>',
+                sys.stdout.flush()
+                text = raw_input().decode('utf-8')
+                a = text.split()
+                if len(a)==0:
+                    pass
+                elif a[0] == 'shutdown':
+                    raise BotShutdown()
+                else:
+                    text = u'@' + self._name + u' ' + text
+                    status = MockTweepy.getStatus(text=text, id=2, user=user)
+                    self.on_data(json.dumps(status))
+
+            except BotShutdown, e:
+                logger.warning('Shutdown Message Received')
+                break
+            except KeyboardInterrupt, e:
+                logger.warning('Keyboard Interrupt')
+                break
+            except EOFError, e:
+                break
+            except Exception, e:
+                logger.error(str(e).decode('utf-8'))
+                logger.error(traceback.format_exc())
+
+        try:
+            self.on_shutdown()
+        except Exception, e:
+            logger.error(str(e).decode('utf-8'))
+
+        logger.info(u'Shutdown')
 
     def test_cron(self, cron_id):
         self.api = APIMock()
