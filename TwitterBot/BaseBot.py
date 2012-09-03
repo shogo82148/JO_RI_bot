@@ -14,6 +14,7 @@ import logging
 import logging.handlers
 from multiprocessing import Process, Lock, Queue
 import traceback
+from TwitterStream import StreamProcess
 
 logger = logging.getLogger("Bot")
 
@@ -76,34 +77,6 @@ class APIMock(object):
                 "hourly_limit": 350,
                 "reset_time": "Fri Jun 25 17:07:09 +0000 2010"}
 
-def StreamProcess(queue, consumer_key, consumer_secret, access_key, access_secret):
-    """ユーザストリームプロセスの実行内容"""
-    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-    auth.set_access_token(access_key, access_secret)
-    stream = tweepy.Stream(auth, BotStream(queue))
-    logger.info('User Stream Starting...')
-    while True:
-        try:
-            stream.userstream(async=False)
-        except httplib.HTTPException, e:
-            logger.error(str(e).encode('utf-8'))
-            time.sleep(10)
-            logger.info('Retry to start user stream...')
-        except Exception, e:
-            logger.error(str(e).encode('utf-8'))
-            queue.put(('shutdown', ''))
-            break
-
-class BotStream(tweepywrap.StreamListener):
-    """ユーザーストリームのリスナ"""
-    def __init__(self, queue):
-        super(BotStream, self).__init__()
-        self.queue = queue
-
-    def on_data(self, data):
-        """メインプロセスへ通知"""
-        self.queue.put(('stream', data))
-        
 class BaseBot(tweepywrap.StreamListener):
     def __init__(self, consumer_key, consumer_secret, access_key, access_secret):
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
@@ -199,13 +172,15 @@ class BaseBot(tweepywrap.StreamListener):
         streaming_process = Process(target=StreamProcess, args = args)
         streaming_process.daemon = True
         streaming_process.start()
-        
+
         #cronサービスを開始
         logger.info(u'Cron Daemon Starting...')
         self._cron.start(async=True)
 
         self.on_start()
+        self.run(streaming_process)
 
+    def run(self, streaming_process):
         while streaming_process.is_alive():
             try:
                 data_type, data = self._queue.get()
@@ -230,7 +205,7 @@ class BaseBot(tweepywrap.StreamListener):
             self.on_shutdown()
         except Exception, e:
             logger.error(str(e).decode('utf-8'))
-        
+
         self._cron.stop()
         logger.info(u'Shutdown')
 
