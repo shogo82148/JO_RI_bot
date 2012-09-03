@@ -236,6 +236,7 @@ class BaseBot(tweepywrap.StreamListener):
 
         # メインループ
         self.on_start()
+        latest_id = None
         while True:
             try:
                 print '>>',
@@ -248,8 +249,10 @@ class BaseBot(tweepywrap.StreamListener):
                     raise BotShutdown()
                 else:
                     text = u'@' + self._name + u' ' + text
-                    status = MockTweepy.getStatus(text=text, id=2, user=user)
+                    status = api.getStatus(text=text, user=user, in_reply_to_status_id=latest_id)
                     self.on_data(json.dumps(status))
+                    latest_id = api.getLatestId()
+                    print latest_id
 
             except BotShutdown, e:
                 logger.warning('Shutdown Message Received')

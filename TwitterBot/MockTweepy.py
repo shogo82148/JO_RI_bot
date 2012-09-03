@@ -62,6 +62,12 @@ class API(object):
         self._id += 1
         return self._id
 
+    def getLatestId(self):
+        return self._id
+
+    def getStatus(self, text, user, **kargs):
+        return getStatus(text, user, self.newId(), **kargs)
+
 def getUser(
     screen_name = '',
     id = 0,
@@ -128,7 +134,7 @@ def getStatus(text, user, id, **kargs):
         "in_reply_to_screen_name": None,
         }
     for key, value in kargs.iteritems():
-        user[key] = value
+        status[key] = value
     status['text'] = text
     status['user'] = user
     status['id'] = id
