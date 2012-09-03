@@ -41,15 +41,27 @@ class API(object):
     def __init__(self):
         self.parser = ModelParser()
         self._id = 0
+        self._my_statuses = []
 
     @ReturnModel(payload_type='status')
     def update_status(self, status, in_reply_to_status_id=None, lat=None, long=None, source=None, place_id=None):
-        return getStatus(
+        status = getStatus(
             text = status,
             id = self.newId(),
             user = self._me(),
             in_reply_to_status_id = in_reply_to_status_id
             )
+        self._my_statuses.insert(0, status)
+        return status
+
+    @ReturnModel(payload_type='status', payload_list=True)
+    def user_timeline(self, id=None, user_id=None, screen_name=None,
+                      since_id=None, max_id=None, count=None, page=None,
+                      includes_rts=None, trim_user=None):
+        if(id or user_id or screen_name):
+            return []
+        else:
+            return self._my_statuses
 
     @ReturnModel(payload_type='user')
     def me(self):
