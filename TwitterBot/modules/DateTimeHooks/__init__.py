@@ -55,8 +55,8 @@ _re_on_time3 = re.compile(ur'(?P<ampm>' + _am + u'|' + _pm + ur')?(\d\d\d+)', re
 _re_day = re.compile(ur'(\d+)日')
 _re_monthday1 = re.compile(ur'(?P<month>\d+)月(?P<day>\d+)日')
 _re_monthday2 = re.compile(ur'(?P<month>\d+)[-./](?P<day>\d+)')
-_re_date1 = re.compile(ur'(?P<year>\d+)年(?P<month>\d+)月(?P<day>\d+)日')
-_re_date2 = re.compile(ur'(?P<year>\d+)[-./](?P<month>\d+)[-./](?P<day>\d+)')
+_re_date1 = re.compile(ur'(?P<name>平成|H)?(?P<year>\d+)年(?P<month>\d+)月(?P<day>\d+)日', re.IGNORECASE)
+_re_date2 = re.compile(ur'(?P<name>平成|H)?(?P<year>\d+)[-./](?P<month>\d+)[-./](?P<day>\d+)', re.IGNORECASE)
 def gettime(text, now):
     text = unicodedata.normalize('NFKC', text)
     text = kanji2digit(text)
@@ -69,6 +69,8 @@ def gettime(text, now):
         if m:
             try:
                 year = int(m.group('year'))
+                if m.group('name'): # 平成で指定された
+                    year += 1988
                 month = int(m.group('month'))
                 day = int(m.group('day'))
                 now = datetime.datetime(year, month, day)
