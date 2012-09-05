@@ -33,6 +33,13 @@ def kanji2digit(s):
     return s
 
 _re_mention = re.compile(u'@\w+')
+_re_before_years = re.compile(ur'(\d+)ヵ?年(前|まえ)')
+_re_before_months = re.compile(ur'(\d+)ヶ月(前|まえ)')
+_re_before_weeks = re.compile(ur'(\d+)週間(前|まえ)')
+_re_before_days = re.compile(ur'(\d+)日(前|まえ)')
+_re_before_hours = re.compile(ur'(\d+)時間(前|まえ)')
+_re_before_minutes = re.compile(ur'(\d+)分(前|まえ)')
+_re_before_seconds = re.compile(ur'(\d+)秒(前|まえ)')
 _re_years = re.compile(ur'(\d+)ヵ?年')
 _re_months = re.compile(ur'(\d+)ヶ月')
 _re_weeks = re.compile(ur'(\d+)週間')
@@ -76,6 +83,86 @@ def gettime(text, now):
                 now = datetime.datetime(year, month, day)
             except:
                 pass
+            pos += len(m.group())
+            continue
+
+        # 秒前
+        m = _re_before_seconds.match(text, pos)
+        if m:
+            now = now - datetime.timedelta(seconds=int(m.group(1)))
+            pos += len(m.group())
+            continue
+
+        # 分前
+        m = _re_before_minutes.match(text, pos)
+        if m:
+            now = now - datetime.timedelta(minutes=int(m.group(1)))
+            pos += len(m.group())
+            continue
+
+        # 時間前
+        m = _re_before_hours.match(text, pos)
+        if m:
+            now = now - datetime.timedelta(hours=int(m.group(1)))
+            pos += len(m.group())
+            continue
+
+        # 日前
+        m = _re_before_days.match(text, pos)
+        if m:
+            now = now - datetime.timedelta(days=int(m.group(1)))
+            pos += len(m.group())
+            continue
+
+        # 週前
+        m = _re_before_weeks.match(text, pos)
+        if m:
+            now = now - datetime.timedelta(weeks=int(m.group(1)))
+            pos += len(m.group())
+            continue
+
+        # 1ヶ月前
+        m = _re_before_months.match(text, pos)
+        if m:
+            # 日にち計算
+            month = now.month - int(m.group(1)) - 1
+            year = now.year + (month // 12)
+            month = month % 12 + 1
+            day = now.day
+
+            # その月の最終日を計算
+            year2 = year
+            month2 = month + 1
+            if month2 == 13:
+                month2 = 1
+                year2 += 1
+            now = datetime.datetime(year2, month2, 1) - datetime.timedelta(1)
+
+            # 指定された日が存在すれば置き換え
+            if now.day > day:
+                now = datetime.datetime(year, month, day)
+            pos += len(m.group())
+            continue
+
+        # 年前
+        m = _re_before_years.match(text, pos)
+        if m:
+            # 日にち計算
+            year = now.year - int(m.group(1))
+            month = now.month
+            day = now.day
+
+            # その月の最終日を計算
+            year2 = year
+            month2 = month + 1
+            if month2 == 13:
+                month2 = 1
+                year2 += 1
+            now = datetime.datetime(year2, month2, 1) - datetime.timedelta(1)
+
+            # 指定された日が存在すれば置き換え
+            if now.day > day:
+                now = datetime.datetime(year, month, day)
             pos += len(m.group())
             continue
 
