@@ -375,11 +375,11 @@ def gettime(text, now):
     return now
 
 _re_dm = re.compile(ur'DM|ダイレクトメッセージ', re.IGNORECASE)
-_re_wakeup1 = re.compile(ur'たら((DM|ダイレクトメッセージ)で?)?(教えて|起こして)', re.IGNORECASE)
-_re_wakeup2 = re.compile(ur'たら(DM|ダイレクトメッセージ)を?送って', re.IGNORECASE)
+_re_wakeup1 = re.compile(ur'(たら|に)((DM|ダイレクトメッセージ)で?)?(教えて|起こして|教えろ|起こせ)', re.IGNORECASE)
+_re_wakeup2 = re.compile(ur'(たら|に)(DM|ダイレクトメッセージ)を?(送って|送れ)', re.IGNORECASE)
 _re_cancel = re.compile(ur'キャンセル|いいや')
-_re_3minutes = re.compile(ur'湯入')
-_re_40seconds = re.compile(ur'連れてい?って')
+_re_3minutes = re.compile(ur'お?[湯ゆ][入い]れた')
+_re_40seconds = re.compile(ur'連れて[い行]?って')
 def hook(bot, status):
     def makewakehook(message = u'時間だぞー！'):
         def wake(bot):
