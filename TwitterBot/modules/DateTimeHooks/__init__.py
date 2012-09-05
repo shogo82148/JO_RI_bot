@@ -32,6 +32,7 @@ def kanji2digit(s):
     s = s.replace(u'十', u'10')
     return s
 
+_re_mention = re.compile(u'@\w+')
 _re_years = re.compile(ur'(\d+)ヵ?年')
 _re_months = re.compile(ur'(\d+)ヶ月')
 _re_weeks = re.compile(ur'(\d+)週間')
@@ -57,6 +58,7 @@ _re_monthday2 = re.compile(ur'(?P<month>\d+)[-./](?P<day>\d+)')
 def gettime(text, now):
     text = unicodedata.normalize('NFKC', text)
     text = kanji2digit(text)
+    text = _re_mention.sub('', text)
 
     pos = 0
     while pos < len(text):
