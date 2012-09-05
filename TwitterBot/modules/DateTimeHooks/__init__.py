@@ -162,21 +162,36 @@ def gettime(text, now):
         # 日付指定
         m = _re_day.match(text, pos)
         if m:
+            pos += len(m.group())
+            year = now.year
+            month = now.month
+            day = int(m.group(1))
+            if day==0 or day>31:
+                continue
             try:
-                now = datetime.datetime(now.year, now.month, int(m.group(1)))
+                if day < now.day: # 指定された日が過ぎていたら翌月
+                    month += 1
+                if month == 13:
+                    month = 1
+                    year = 12
+                now = datetime.datetime(year, month, day)
             except:
                 pass
-            pos += len(m.group())
             continue
 
         # 月/日
         m = _re_monthday1.match(text, pos) or _re_monthday2.match(text, pos)
         if m:
+            pos += len(m.group())
+            year = now.year
+            month = int(m.group('month'))
+            day = int(m.group('day'))
             try:
-                now = datetime.datetime(now.year, int(m.group('month')), int(m.group('day')))
+                if (month, day) < (now.month, now.day):
+                    year += 1
+                now = datetime.datetime(year, month, day)
             except:
                 pass
-            pos += len(m.group())
             continue
 
         # 時間指定
