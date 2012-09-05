@@ -55,6 +55,8 @@ _re_on_time3 = re.compile(ur'(?P<ampm>' + _am + u'|' + _pm + ur')?(\d\d\d+)', re
 _re_day = re.compile(ur'(\d+)日')
 _re_monthday1 = re.compile(ur'(?P<month>\d+)月(?P<day>\d+)日')
 _re_monthday2 = re.compile(ur'(?P<month>\d+)[-./](?P<day>\d+)')
+_re_date1 = re.compile(ur'(?P<year>\d+)年(?P<month>\d+)月(?P<day>\d+)日')
+_re_date2 = re.compile(ur'(?P<year>\d+)[-./](?P<month>\d+)[-./](?P<day>\d+)')
 def gettime(text, now):
     text = unicodedata.normalize('NFKC', text)
     text = kanji2digit(text)
@@ -62,6 +64,19 @@ def gettime(text, now):
 
     pos = 0
     while pos < len(text):
+        # 年/月/日
+        m = _re_date1.match(text, pos) or _re_date2.match(text, pos)
+        if m:
+            try:
+                year = int(m.group('year'))
+                month = int(m.group('month'))
+                day = int(m.group('day'))
+                now = datetime.datetime(year, month, day)
+            except:
+                pass
+            pos += len(m.group())
+            continue
+
         # 秒
         m = _re_seconds.match(text, pos)
         if m:
