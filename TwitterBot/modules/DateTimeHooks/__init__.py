@@ -428,7 +428,11 @@ def hook(bot, status):
     m = _re_wakeup1.search(text) or _re_wakeup2.search(text)
     if not m:
         return False
-    waketime = gettime(text, datetime.datetime.now())
+
+    try:
+        waketime = gettime(text, datetime.datetime.now())
+    except Exception:
+        waketime = None
 
     if waketime is None or waketime-datetime.datetime.now()<datetime.timedelta(seconds=9):
         ng_message = random.choice([
