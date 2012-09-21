@@ -9,6 +9,7 @@ import re
 import datetime
 import unicodedata
 import random
+import math
 
 # 漢数字・数字変換
 _kanjidigit = u'〇一二三四五六七八九'
@@ -35,18 +36,18 @@ def kanji2digit(s):
 _re_mention = re.compile(u'@\w+')
 _re_before_years = re.compile(ur'(\d+)ヵ?年(前|まえ)')
 _re_before_months = re.compile(ur'(\d+)ヶ月(前|まえ)')
-_re_before_weeks = re.compile(ur'(\d+)週間(前|まえ)')
-_re_before_days = re.compile(ur'(\d+)日(前|まえ)')
-_re_before_hours = re.compile(ur'(\d+)時間(前|まえ)')
-_re_before_minutes = re.compile(ur'(\d+)分(前|まえ)')
-_re_before_seconds = re.compile(ur'(\d+)秒(前|まえ)')
+_re_before_weeks = re.compile(ur'([.\d]+)週間(前|まえ)')
+_re_before_days = re.compile(ur'([.\d]+)日(前|まえ)')
+_re_before_hours = re.compile(ur'([.\d]+)時間(前|まえ)')
+_re_before_minutes = re.compile(ur'([.\d]+)分(前|まえ)')
+_re_before_seconds = re.compile(ur'([.\d]+)秒(前|まえ)')
 _re_years = re.compile(ur'(\d+)ヵ?年')
 _re_months = re.compile(ur'(\d+)ヶ月')
-_re_weeks = re.compile(ur'(\d+)週間')
-_re_days = re.compile(ur'(\d+)日(後|たった|経った|経過)')
-_re_hours = re.compile(ur'(\d+)時間')
-_re_minutes = re.compile(ur'(\d+)分')
-_re_seconds = re.compile(ur'(\d+)秒')
+_re_weeks = re.compile(ur'([.\d]+)週間')
+_re_days = re.compile(ur'([.\d]+)日(後|たった|経った|経過)')
+_re_hours = re.compile(ur'([.\d]+)時間')
+_re_minutes = re.compile(ur'([.\d]+)分')
+_re_seconds = re.compile(ur'([.\d]+)秒')
 _re_tomorrow = re.compile(ur'明日|あす|翌日|よくじつ')
 _re_nexttomorrow = re.compile(ur'明後日|あさって|みょうごにち')
 _re_nextnexttomorrow = re.compile(ur'明[明々]後日|しあさって')
@@ -89,35 +90,37 @@ def gettime(text, now):
         # 秒前
         m = _re_before_seconds.match(text, pos)
         if m:
-            now = now - datetime.timedelta(seconds=int(m.group(1)))
+            now = now - datetime.timedelta(seconds=math.floor(float(m.group(1))))
             pos += len(m.group())
             continue
 
         # 分前
         m = _re_before_minutes.match(text, pos)
         if m:
-            now = now - datetime.timedelta(minutes=int(m.group(1)))
+            now = now - datetime.timedelta(minutes=float(m.group(1)))
             pos += len(m.group())
             continue
 
         # 時間前
         m = _re_before_hours.match(text, pos)
         if m:
-            now = now - datetime.timedelta(hours=int(m.group(1)))
+            now = now - datetime.timedelta(hours=float(m.group(1)))
             pos += len(m.group())
             continue
 
         # 日前
         m = _re_before_days.match(text, pos)
         if m:
-            now = now - datetime.timedelta(days=int(m.group(1)))
+            now = now - datetime.timedelta(days=float(m.group(1)))
+            if '.' not in m.group(1):
+                now = datetime.datetime(now.year, now.month, now.day)
             pos += len(m.group())
             continue
 
         # 週前
         m = _re_before_weeks.match(text, pos)
         if m:
-            now = now - datetime.timedelta(weeks=int(m.group(1)))
+            now = now - datetime.timedelta(weeks=float(m.group(1)))
             pos += len(m.group())
             continue
 
@@ -169,35 +172,37 @@ def gettime(text, now):
         # 秒
         m = _re_seconds.match(text, pos)
         if m:
-            now = now + datetime.timedelta(seconds=int(m.group(1)))
+            now = now + datetime.timedelta(seconds=math.floor(float(m.group(1))))
             pos += len(m.group())
             continue
 
         # 分
         m = _re_minutes.match(text, pos)
         if m:
-            now = now + datetime.timedelta(minutes=int(m.group(1)))
+            now = now + datetime.timedelta(minutes=float(m.group(1)))
             pos += len(m.group())
             continue
 
         # 時間
         m = _re_hours.match(text, pos)
         if m:
-            now = now + datetime.timedelta(hours=int(m.group(1)))
+            now = now + datetime.timedelta(hours=float(m.group(1)))
             pos += len(m.group())
             continue
 
         # 日
         m = _re_days.match(text, pos)
         if m:
-            now = now + datetime.timedelta(days=int(m.group(1)))
+            now = now + datetime.timedelta(days=float(m.group(1)))
+            if '.' not in m.group(1):
+                now = datetime.datetime(now.year, now.month, now.day)
             pos += len(m.group())
             continue
 
         # 週
         m = _re_weeks.match(text, pos)
         if m:
-            now = now + datetime.timedelta(weeks=int(m.group(1)))
+            now = now + datetime.timedelta(weeks=float(m.group(1)))
             pos += len(m.group())
             continue
 
