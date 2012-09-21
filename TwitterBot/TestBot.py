@@ -49,7 +49,7 @@ class TestBot(BaseBot):
         formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
         hdlr.setFormatter(formatter)
         logger.addHandler(hdlr)
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.ERROR)
 
         # setup error output
         hdlr = logging.StreamHandler()
