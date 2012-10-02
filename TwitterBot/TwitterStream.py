@@ -4,6 +4,7 @@
 import tweepy
 import tweepywrap
 import logging
+import httplib
 
 logger = logging.getLogger("Bot.Steam")
 
