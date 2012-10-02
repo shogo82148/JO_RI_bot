@@ -392,6 +392,8 @@ def hook(bot, status):
             if is_dm:
                 bot.api.send_direct_message(user=status.author.id, text=text)
             else:
+                if target_users:
+                    text = ' '.join(target_users) + ' ' + text
                 bot.reply_to(text , status)
         return wake
 
@@ -399,30 +401,50 @@ def hook(bot, status):
         m = _re_cancel.search(new_status.text)
         if not m:
             return False
-        if new_status.author.id!=status.author.id:
-            return False
-        bot.reply_to(u'はーい、またいつでもどうぞー [%s]' % bot.get_timestamp(), new_status)
-        bot.delete_reply_hook(name)
-        return True
+        if new_status.author.id == status.author.id:
+            bot.reply_to(u'はーい、またいつでもどうぞー [%s]' % bot.get_timestamp(), new_status)
+            bot.delete_reply_hook(name)
+            return True
+        author_name = u'@' + new_status.author.screen_name.lower()
+        if author_name in target_users_set:
+            bot.reply_to(u'はーい、またいつでもどうぞー [%s]' % bot.get_timestamp(), new_status)
+            target_users_set.remove(author_name)
+            target_users[:] = [n for n in target_users if name.lower() != author_name]
+            return True
+
+    def makeokreply(ok_message, time_out, wakehook = None):
+        if target_users:
+            ok_message = ' '.join(target_users) + ' ' + ok_message
+        ok_status = bot.reply_to(ok_message + " [%s]" % bot.get_timestamp(), status)
+        bot.append_reply_hook(cancel_hook,
+                              name = name,
+                              in_reply_to = ok_status.id,
+                              time_out = time_out,
+                              on_time_out = wakehook or makewakehook())
 
     text = unicodedata.normalize('NFKC',status.text)
     is_dm = not (_re_dm.search(text) is None)
     name = 'wakeup-' + str(status.id)
+
+    # 他の人にもお知らせする
+    myscreenname = u'@' + bot.api.me().screen_name.lower()
+    target_users = []
+    target_users_set = set([u'@' + status.author.screen_name.lower()])
+    for m in _re_mention.finditer(status.text):
+        if m.group().lower() == myscreenname:
+            continue
+        if m.group().lower() in target_users_set:
+            continue
+        target_users.append(m.group())
+        target_users_set.add(m.group().lower())
+    target_users = target_users[:4] # 最大3人まで
+    target_users_set = set(target_users)
+
     if _re_3minutes.search(text):
-        ok_status = bot.reply_to(u'3分間待ってやる [%s]' % bot.get_timestamp(), status)
-        bot.append_reply_hook(cancel_hook,
-                              name = name,
-                              in_reply_to = ok_status.id,
-                              time_out = 3*60,
-                              on_time_out = makewakehook(u'時間だ！！答えを聞こう！！'))
+        makeokreply(u'3分間待ってやる', 3*60, makewakehook(u'時間だ！！答えを聞こう！！'))
         return True
     elif _re_40seconds.search(text):
-        ok_status = bot.reply_to(u'40秒で支度しな [%s]' % bot.get_timestamp(), status)
-        bot.append_reply_hook(cancel_hook,
-                              name = name,
-                              in_reply_to = ok_status.id,
-                              time_out = 40,
-                              on_time_out = makewakehook(u'時間だ！！'))
+        makeokreply(u'40秒で支度しな', 3*60, makewakehook(u'時間だ！！'))
         return True
 
     m = _re_wakeup1.search(text) or _re_wakeup2.search(text)
@@ -452,11 +474,5 @@ def hook(bot, status):
             ok_message += u'にDMでお知らせします'
         else:
             ok_message += u'にお知らせします'
-        ok_status = bot.reply_to(ok_message + " [%s]" % bot.get_timestamp(), status)
-
-        bot.append_reply_hook(cancel_hook,
-                              name = name,
-                              in_reply_to = ok_status.id,
-                              time_out = waketime-datetime.datetime.now(),
-                              on_time_out = makewakehook())
+        makeokreply(ok_message, waketime-datetime.datetime.now())
     return True
