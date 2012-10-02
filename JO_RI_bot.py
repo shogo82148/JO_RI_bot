@@ -225,7 +225,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
         """決まりきった応答"""
 
         #ぬるぽ→ｶﾞｯ
-        if status.text.find(u'ぬるぽ')>=0:
+        if status.text.find(u'ぬるぽ')>=0 or status.text.find(u'ゑぬぽ')>=0:
             bot.reply_to(u'ｶﾞｯ [%s]' % bot.get_timestamp(), status)
             return True
 
