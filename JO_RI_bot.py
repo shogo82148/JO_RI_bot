@@ -23,6 +23,7 @@ from TwitterBot.modules import busNUT
 from TwitterBot.modules.Translator import Translator
 from TwitterBot.modules import DayOfTheWeek
 from TwitterBot.modules.wolframalpha import WolframAlpha
+from TwitterBot.modules import ukeru
 import TwitterBot.modules.DateTimeHooks as DateTimeHooks
 import tweepy
 import TwitterBot.modules.atnd as atnd
@@ -137,6 +138,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
         crawler_auth.set_access_token(config.CRAWLER_ACCESS_KEY, config.CRAWLER_ACCESS_SECRET)
         crawler_api = tweepy.API(crawler_auth, retry_count=10, retry_delay=1)
         self.clone_bot = GlobalCloneBot(config.CRAWL_USER, crawler_api = crawler_api)
+        self.append_reply_hook(ukeru.hook)
         self.append_reply_hook(self.clone_bot.reply_hook)
         self.append_cron('30 */2 * * *',
                          self.clone_bot.crawl,
