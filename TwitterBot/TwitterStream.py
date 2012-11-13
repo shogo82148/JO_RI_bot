@@ -5,6 +5,7 @@ import tweepy
 import tweepywrap
 import logging
 import httplib
+import time
 
 logger = logging.getLogger("Bot.Steam")
 
@@ -17,14 +18,10 @@ def StreamProcess(queue, consumer_key, consumer_secret, access_key, access_secre
     while True:
         try:
             stream.userstream(async=False)
-        except httplib.HTTPException, e:
+        except Exception, e:
             logger.error(str(e).encode('utf-8'))
             time.sleep(10)
             logger.info('Retry to start user stream...')
-        except Exception, e:
-            logger.error(str(e).encode('utf-8'))
-            queue.put(('shutdown', ''))
-            break
 
 class BotStream(tweepywrap.StreamListener):
     """ユーザーストリームのリスナ"""
