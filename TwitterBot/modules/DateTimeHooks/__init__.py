@@ -33,20 +33,23 @@ def kanji2digit(s):
     s = s.replace(u'十', u'10')
     return s
 
+def containsHalf(m):
+    return m.group().find(u'半') >= 0
+
 _re_mention = re.compile(u'@\w+')
 _re_before_years = re.compile(ur'(\d+)ヵ?年(前|まえ)')
 _re_before_months = re.compile(ur'(\d+)ヶ月(前|まえ)')
 _re_before_weeks = re.compile(ur'([.\d]+)週間(前|まえ)')
-_re_before_days = re.compile(ur'([.\d]+)日(前|まえ)')
-_re_before_hours = re.compile(ur'([.\d]+)時間(前|まえ)')
-_re_before_minutes = re.compile(ur'([.\d]+)分(前|まえ)')
+_re_before_days = re.compile(ur'([.\d]+)日半?(前|まえ)')
+_re_before_hours = re.compile(ur'([.\d]+)時間半?(前|まえ)')
+_re_before_minutes = re.compile(ur'([.\d]+)分半?(前|まえ)')
 _re_before_seconds = re.compile(ur'([.\d]+)秒(前|まえ)')
 _re_years = re.compile(ur'(\d+)ヵ?年')
 _re_months = re.compile(ur'(\d+)ヶ月')
 _re_weeks = re.compile(ur'([.\d]+)週間')
-_re_days = re.compile(ur'([.\d]+)日(後|たった|経った|経過)')
-_re_hours = re.compile(ur'([.\d]+)時間')
-_re_minutes = re.compile(ur'([.\d]+)分')
+_re_days = re.compile(ur'([.\d]+)日半?(後|たった|経った|経過)')
+_re_hours = re.compile(ur'([.\d]+)時間半?')
+_re_minutes = re.compile(ur'([.\d]+)分半?')
 _re_seconds = re.compile(ur'([.\d]+)秒')
 _re_tomorrow = re.compile(ur'明日|あす|翌日|よくじつ')
 _re_nexttomorrow = re.compile(ur'明後日|あさって|みょうごにち')
@@ -57,7 +60,7 @@ _am = ur'a\.?m\.?|午前'
 _pm = ur'p\.?m\.?|午後'
 _re_am = re.compile(_am, re.IGNORECASE)
 _re_pm = re.compile(_pm, re.IGNORECASE)
-_re_on_time1 = re.compile(ur'(?P<ampm>' + _am + u'|' + _pm + ur')?(?P<hour>\d\d?)時((?P<minute>\d\d?)分)?((?P<second>\d\d?)秒)?', re.IGNORECASE)
+_re_on_time1 = re.compile(ur'(?P<ampm>' + _am + u'|' + _pm + ur')?(?P<hour>\d\d?)時半?((?P<minute>\d\d?)分)?((?P<second>\d\d?)秒)?', re.IGNORECASE)
 _re_on_time2 = re.compile(ur'(?P<ampm>' + _am + u'|' + _pm + ur')?(?P<hour>\d\d?):(?P<minute>\d\d?)(:(?P<second>\d\d?))?', re.IGNORECASE)
 _re_on_time3 = re.compile(ur'(?P<ampm>' + _am + u'|' + _pm + ur')?(\d\d\d+)', re.IGNORECASE)
 _re_day = re.compile(ur'(\d+)日')
@@ -98,6 +101,8 @@ def gettime(text, now):
         m = _re_before_minutes.match(text, pos)
         if m:
             now = now - datetime.timedelta(minutes=float(m.group(1)))
+            if containsHalf(m):
+                now = now - datetime.timedelta(minutes = 0.5)
             pos += len(m.group())
             continue
 
@@ -105,6 +110,8 @@ def gettime(text, now):
         m = _re_before_hours.match(text, pos)
         if m:
             now = now - datetime.timedelta(hours=float(m.group(1)))
+            if containsHalf(m):
+                now = now - datetime.timedelta(hours = 0.5)
             pos += len(m.group())
             continue
 
@@ -114,6 +121,8 @@ def gettime(text, now):
             now = now - datetime.timedelta(days=float(m.group(1)))
             if '.' not in m.group(1):
                 now = datetime.datetime(now.year, now.month, now.day)
+            if containsHalf(m):
+                now = now - datetime.timedelta(days = 0.5)
             pos += len(m.group())
             continue
 
@@ -180,6 +189,8 @@ def gettime(text, now):
         m = _re_minutes.match(text, pos)
         if m:
             now = now + datetime.timedelta(minutes=float(m.group(1)))
+            if containsHalf(m):
+                now = now + datetime.timedelta(minutes = 0.5)
             pos += len(m.group())
             continue
 
@@ -187,6 +198,8 @@ def gettime(text, now):
         m = _re_hours.match(text, pos)
         if m:
             now = now + datetime.timedelta(hours=float(m.group(1)))
+            if containsHalf(m):
+                now = now + datetime.timedelta(hours = 0.5)
             pos += len(m.group())
             continue
 
@@ -196,6 +209,8 @@ def gettime(text, now):
             now = now + datetime.timedelta(days=float(m.group(1)))
             if '.' not in m.group(1):
                 now = datetime.datetime(now.year, now.month, now.day)
+            if containsHalf(m):
+                now = now + datetime.timedelta(days = 0.5)
             pos += len(m.group())
             continue
 
@@ -295,6 +310,8 @@ def gettime(text, now):
             second = int(m.group('second') or 0)
             if ampm and _re_pm.match(ampm):
                 hour += 12
+            if containsHalf(m):
+                minute += 30
             waketime = datetime.datetime(now.year, now.month, now.day)
             waketime = waketime + datetime.timedelta(hours=hour, minutes=minute, seconds=second)
             while waketime <= now:
@@ -314,7 +331,7 @@ def gettime(text, now):
             pos += len(m.group())
             continue
 
-        # 明日
+        # 明後日
         m = _re_nexttomorrow.match(text, pos)
         if m:
             now = datetime.datetime(now.year, now.month, now.day)
