@@ -37,10 +37,11 @@ class GlobalCloneBot(CloneBot):
 
     def reply_hook(self, bot, status):
         """適当にリプライを返してあげる"""
-        text = self.get_text()
         if status:
+            text = self.get_text(status.text)
             bot.reply_to(text, status)
         else:
+            text = self.get_text()
             bot.update_status(text)
             #時々英訳
             if random.random()<0.2:

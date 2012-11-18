@@ -135,6 +135,28 @@ class DBManager(object):
                     continue
                 yield (w.decode('utf-8'), int(db[key]))
 
+    def _reply_word(self, word):
+        """ wordに対してリプライしやすい単語を探す """
+        db = self.replydb
+        str_word = word.encode('utf-8')
+        if str_word in db:
+            next_words = db[str_word].split('\n')
+            for w in next_words:
+                key = str_word+'\n'+w
+                if key not in db:
+                    continue
+                yield (w.decode('utf-8'), int(db[key]))
+
+    def reply_word(self, text):
+        distribution = {}
+        text = self.extract_text(text)
+        nodes = Parse(text, self._mecab)
+        g = (self.node2word(n) for n in nodes)
+        for word1 in g:
+            for word2, count in self._reply_word(word1):
+                distribution[word2] = distribution.get(word2, 0) + count
+        return distribution
+
     def _get_since_id(self):
         if 'since_id' in self.db:
             return self.db['since_id']
