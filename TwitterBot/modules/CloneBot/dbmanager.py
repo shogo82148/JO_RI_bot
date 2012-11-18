@@ -31,9 +31,10 @@ class DBManager(object):
     EOS = '\tBOS/EOS,*,*'
     bigram_columns = ['count', 'following']
 
-    def __init__(self, mecab=None, dbfile='bigram.db'):
+    def __init__(self, mecab=None, dbfile='bigram.db', replydbfile='reply.db'):
         self._mecab = mecab or MeCab.Tagger()
         self.db = anydbm.open(dbfile, 'c')
+        self.replydb = anydbm.open(replydbfile, 'c')
         self._closed = False
 
     def __enter__(self):
@@ -45,6 +46,7 @@ class DBManager(object):
     def close(self):
         if not self._closed:
             self.db.close()
+            self.replydb.close()
             self._closed = True
 
     _re_mention = re.compile(r'@\w+')
@@ -71,13 +73,13 @@ class DBManager(object):
         text = "%s\t%s,%s,%s" % tuple([node.surface]+features)
         return text.decode('utf-8')
 
-    def add_text(self, text):
+    def add_text(self, text, reply):
         """ テキストをデータベースに登録する """
 
         db = self.db
         bigrams = {}
         nodes = Parse(text, self._mecab)
-        g = (self.node2word(n) for n in nodes)
+        g = [self.node2word(n) for n in nodes]
 
         for word1, word2 in Bigram(g):
             w1 = word1.encode('utf-8')
@@ -92,6 +94,34 @@ class DBManager(object):
                     db[w1] += '\n' + w2
             else:
                 db[bigram] = str(int(db[bigram])+1)
+
+        if not reply:
+            return
+
+        replydb = self.replydb
+        replynodes = Parse(reply, self._mecab)
+        for n in replynodes:
+            w1 = self.node2word(n)
+            if u'BOS/EOS' in w1:
+                continue
+            if u'\t名詞,' not in w1 and u'\t動詞,' not in w1:
+                continue
+            w1 = w1.encode('utf-8')
+            for word2 in g:
+                if u'BOS/EOS' in word2:
+                    continue
+                if u'\t名詞,' not in word2 and u'\t動詞,' not in word2:
+                    continue
+                w2 = word2.encode('utf-8')
+                bigram = w1 + '\n' + w2
+                if bigram not in replydb:
+                    replydb[bigram] = '1'
+                    if w1 not in replydb:
+                        replydb[w1] = w2
+                    else:
+                        replydb[w1] += '\n' + w2
+                else:
+                    replydb[bigram] = str(int(replydb[bigram])+1)
 
     def next_word(self, word):
         """ wordの次に出現する単語を探す """

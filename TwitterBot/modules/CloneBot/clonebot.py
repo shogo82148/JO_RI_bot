@@ -71,10 +71,11 @@ class CloneBot(object):
 
                 #DBへ登録
                 text = db.extract_text(status.text)
+                reply_text = db.extract_text(reply_to.text) if reply_to else None
                 logger.debug('%s: %s' % (status.id, status.text))
                 if reply_to:
                     logger.debug('>%s: %s' % (reply_to.id, reply_to.text))
-                db.add_text(text)
+                db.add_text(text, reply_text)
                 db.since_id = str( max(int(db.since_id or 0), int(status.id)) )
                 
         with open(self._log_file, 'a') as f:
