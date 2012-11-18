@@ -16,26 +16,33 @@ class MarkovGenerator(object):
         self.db = db
         self.random = random.Random()
 
-    def get_text(self):
+    def get_text(self, reply_to = None):
         db = self.db
         text = ''
         word = db.BOS
+        distribution = {}
+
+        # 1-gramの出現頻度を計算しておく
+        if reply_to:
+            distribution = db.reply_word(reply_to)
+
+        # 文章生成
         while True:
-            next_word = self.get_next(word)
+            next_word = self.get_next(word, distribution)
             if not next_word or next_word==db.EOS:
                 break
             text += next_word.split('\t')[0]
-            #print next_word
             word = next_word
         return text
 
-    def get_next(self, word):
+    def get_next(self, word, distribution = None):
         """wordの次の単語を決定する"""
+        distribution = distribution or {}
         db = self.db
         word_list = []
         count_sum = 0
         for word, count in db.next_word(word):
-            count_sum += count
+            count_sum += count * (distribution.get(word, 0) + 1)
             word_list.append((word, count_sum))
 
         selection = self.random.random() * count_sum
