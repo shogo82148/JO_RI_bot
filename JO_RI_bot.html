@@ -1,0 +1,26 @@
+<html>
+  <head>
+    <title>じょりぼっと</title>
+    <style>
+      #JORI {width: 100%;}
+      #in {width: 100%;}
+      #mic {left: 50%; position:relative; margin-left:-64px;}
+    </style>
+  </head>
+  <body>
+    <img id="JORI" src="https://si0.twimg.com/profile_images/1773050850/nnv.gif" onclick="reply()">
+    <input type="text" id="in">
+    <img id="mic" src="http://www.material-land.com/material/3479.png" onclick="recognize()">
+    <script>
+      var droid = new Android();
+      var input = document.getElementById("in");
+      function recognize() {
+          input.value = droid.recognizeSpeech().result;
+      }
+      function reply() {
+          droid.eventPost("reply", input.value);
+          input.value = "";
+      }
+    </script>
+  </body>
+</html>

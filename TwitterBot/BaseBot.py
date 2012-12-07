@@ -143,12 +143,28 @@ class BaseBot(tweepywrap.StreamListener):
         parser = self.setup_optparser()
         options, args = parser.parse_args(sys.argv)
         self.setup_logger(options)
-        if options.interactive:
-            self.start_interactive()
-        elif options.cron:
-            self.test_cron(options.cron)
-        else:
-            self.start()
+        try:
+            import android
+            droid = android.Android()
+            droid.dialogCreateAlert('JO_RI_bot')
+            droid.dialogSetItems(['Twitter', 'Console', 'WebView'])
+            droid.dialogShow()
+            response = droid.dialogGetResponse()
+            item = response.result["item"]
+            droid.dialogDismiss()
+            if item == 0:
+                self.start()
+            elif item == 1:
+                self.start_interactive()
+            else:
+                self.start_droid(droid)
+        except Exception, e:
+            if options.interactive:
+                self.start_interactive()
+            elif options.cron:
+                self.test_cron(options.cron)
+            else:
+                self.start()
 
     def start(self):
         """ボットの動作を開始する"""
@@ -255,6 +271,86 @@ class BaseBot(tweepywrap.StreamListener):
                     self.on_data(json.dumps(status))
                     latest_id = api.getLatestId()
                     print latest_id
+
+            except BotShutdown, e:
+                logger.warning('Shutdown Message Received')
+                break
+            except KeyboardInterrupt, e:
+                logger.warning('Keyboard Interrupt')
+                break
+            except EOFError, e:
+                break
+            except Exception, e:
+                logger.error(str(e).decode('utf-8'))
+                logger.error(traceback.format_exc())
+
+        try:
+            self.on_shutdown()
+        except Exception, e:
+            logger.error(str(e).decode('utf-8'))
+
+        logger.info(u'Shutdown')
+
+    def start_droid(self, droid):
+        """Anroidでボットとはなす"""
+
+        import json
+        import MockTweepy
+
+        # API初期化
+        api = MockTweepy.API()
+        self.api = api
+
+        # UIを起動
+        url = '/mnt/sdcard/sl4a/scripts/JO_RI_bot/JO_RI_bot.html'
+        droid.webViewShow(url)
+        droid.dialogCreateSpinnerProgress('JO_RI_bot', 'Initializing...')
+        droid.dialogShow()
+
+        #アカウント設定の読み込み
+        self._name = self.api.me().screen_name
+        self._re_reply_to_me = re.compile(r'^@%s' % self._name, re.IGNORECASE)
+        mention = re.compile(r'^@\w+')
+        timestamp = re.compile(r'\[.*\]$')
+
+        #やりとりの設定
+        self._queue = Queue()
+        self._cron = crondaemon.crondaemon()
+        self._reply_hooks = []
+        self._reply_hook_id = 0
+        self._cron_funcs = {}
+        self._cron_id = 0
+
+        # デバッグ用ユーザの設定
+        user = MockTweepy.getUser('test')
+
+        # メインループ
+        self.on_start()
+        latest_id = None
+        droid.dialogDismiss()
+        while True:
+            try:
+                result = droid.eventWaitFor('reply').result
+                text = result.get('data', '')
+                if len(text)==0:
+                    pass
+                elif text == u'バルス':
+                    raise BotShutdown()
+                else:
+                    droid.dialogCreateSpinnerProgress('JO_RI_bot', 'Thinking...')
+                    droid.dialogShow()
+
+                    text = u'@' + self._name + u' ' + text
+                    status = api.getStatus(text=text, user=user, in_reply_to_status_id=latest_id)
+                    self.on_data(json.dumps(status))
+                    latest_id = api.getLatestId()
+                    text = api.user_timeline()[0].text
+                    text = mention.sub(u'', text)
+                    text = timestamp.sub(u'', text)
+
+                    droid.dialogDismiss()
+                    droid.makeToast(text.encode('utf-8'))
+                    droid.ttsSpeak(text.encode('utf-8'))
 
             except BotShutdown, e:
                 logger.warning('Shutdown Message Received')
