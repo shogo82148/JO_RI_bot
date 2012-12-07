@@ -1,0 +1,9 @@
+[submodule "croniter"]
+	path = croniter
+	url = git@github.com:taichino/croniter.git
+[submodule "igo-python"]
+	path = igo-python
+	url = git@github.com:hideaki-t/igo-python.git
+[submodule "python-dateutil"]
+	path = python-dateutil
+	url = git@github.com:paxan/python-dateutil.git

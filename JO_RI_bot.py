@@ -1,6 +1,18 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
+import os
+import sys
+
+try:
+    os.chdir('/sdcard/sl4a/scripts/JO_RI_bot/')
+except Exception, e:
+    pass
+
+sys.path.append('./croniter/')
+sys.path.append('./python-dateutil/')
+sys.path.append('./igo-python/')
+
 import re
 import config
 import TwitterBot
@@ -14,26 +26,26 @@ from TwitterBot.modules import friendship
 from TwitterBot.modules import fizzbuzz
 from TwitterBot.modules import unicodehook
 from TwitterBot.modules.unya import Unya
-from TwitterBot.modules import reflexa
-from TwitterBot.modules import gakushoku
-from TwitterBot.modules.amazon import Amazon
+#from TwitterBot.modules import reflexa
+#from TwitterBot.modules import gakushoku
+#from TwitterBot.modules.amazon import Amazon
 from TwitterBot.modules.CloneBot import CloneBot
-from TwitterBot.modules.dokusho import Dokusho
+#from TwitterBot.modules.dokusho import Dokusho
 from TwitterBot.modules import busNUT
-from TwitterBot.modules.Translator import Translator
+#from TwitterBot.modules.Translator import Translator
 from TwitterBot.modules import DayOfTheWeek
-from TwitterBot.modules.wolframalpha import WolframAlpha
+#from TwitterBot.modules.wolframalpha import WolframAlpha
 from TwitterBot.modules import ukeru
 import TwitterBot.modules.DateTimeHooks as DateTimeHooks
 import tweepy
-import TwitterBot.modules.atnd as atnd
+#import TwitterBot.modules.atnd as atnd
 
 logger = logging.getLogger("Bot.JO_RI")
 
 class GlobalCloneBot(CloneBot):
     def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db', crawler_api=None):
         super(GlobalCloneBot, self).__init__(crawl_user, mecab, log_file, db_file, crawler_api)
-        self.translator = Translator(config.BING_APP_KEY, 'ja', 'en').translator
+        #self.translator = Translator(config.BING_APP_KEY, 'ja', 'en').translator
 
     def reply_hook(self, bot, status):
         """適当にリプライを返してあげる"""
@@ -44,13 +56,13 @@ class GlobalCloneBot(CloneBot):
             text = self.get_text()
             bot.update_status(text)
             #時々英訳
-            if random.random()<0.2:
-                text = self.translator.translate(text)
-                bot.update_status(u'[Translated] '+text)
-                #時々再翻訳
-                if random.random()<0.5:
-                    text = self.translator.translate(text, 'en', 'ja')
-                    bot.update_status(u'[再翻訳] ' + text)
+            #if random.random()<0.2:
+            #    text = self.translator.translate(text)
+            #    bot.update_status(u'[Translated] '+text)
+            #    #時々再翻訳
+            #    if random.random()<0.5:
+            #        text = self.translator.translate(text, 'en', 'ja')
+            #        bot.update_status(u'[再翻訳] ' + text)
         return True
 
 class JO_RI_bot(TwitterBot.BaseBot):
@@ -89,48 +101,48 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_reply_hook(JO_RI_bot.limit_hook)
         self.append_reply_hook(JO_RI_bot.hire_me)
 
-        self.translator = Translator(config.BING_APP_KEY)
-        self.append_reply_hook(self.translator.hook)
+        #self.translator = Translator(config.BING_APP_KEY)
+        #self.append_reply_hook(self.translator.hook)
 
-        dokusho = Dokusho(
-            config.CRAWL_USER,
-            config.DOKUSHO_USER,
-            config.AMAZON_ACCESS_KEY_ID,
-            config.AMAZON_SECRET_ACCESS_KEY)
-        self.append_reply_hook(dokusho.hook)
-        self.append_cron('0 0 * * mon', dokusho.crawl)
+        #dokusho = Dokusho(
+        #    config.CRAWL_USER,
+        #    config.DOKUSHO_USER,
+        #    config.AMAZON_ACCESS_KEY_ID,
+        #    config.AMAZON_SECRET_ACCESS_KEY)
+        #self.append_reply_hook(dokusho.hook)
+        #self.append_cron('0 0 * * mon', dokusho.crawl)
 
-        amazon = Amazon(
-            config.CRAWL_USER,
-            config.DOKUSHO_USER,
-            config.AMAZON_ACCESS_KEY_ID,
-            config.AMAZON_SECRET_ACCESS_KEY,
-            config.AMAZON_ASSOCIATE_TAG)
-        self.append_reply_hook(amazon.hook)
+        #amazon = Amazon(
+        #    config.CRAWL_USER,
+        #    config.DOKUSHO_USER,
+        #    config.AMAZON_ACCESS_KEY_ID,
+        #    config.AMAZON_SECRET_ACCESS_KEY,
+        #    config.AMAZON_ASSOCIATE_TAG)
+        #self.append_reply_hook(amazon.hook)
 
-        self._gakushoku = gakushoku.GakuShoku(
-                config.MENU_EMAIL, config.MENU_PASSWORD,
-                config.MENU_ID, config.MENU_SHEET)
-        self.append_reply_hook(self._gakushoku.hook)
-        self.append_cron('00 11 * * *',
-                         self._gakushoku.tweet_menu,
-                         name = u'Gakushoku Menu(noon)',
-                         args = (False,))
-        self.append_cron('00 16 * * *',
-                         self._gakushoku.tweet_menu,
-                         name = u'Gakushoku Menu(afternoon)',
-                         args = (True,))
+        #self._gakushoku = gakushoku.GakuShoku(
+        #        config.MENU_EMAIL, config.MENU_PASSWORD,
+        #        config.MENU_ID, config.MENU_SHEET)
+        #self.append_reply_hook(self._gakushoku.hook)
+        #self.append_cron('00 11 * * *',
+        #                 self._gakushoku.tweet_menu,
+        #                 name = u'Gakushoku Menu(noon)',
+        #                 args = (False,))
+        #self.append_cron('00 16 * * *',
+        #                 self._gakushoku.tweet_menu,
+        #                 name = u'Gakushoku Menu(afternoon)',
+        #                 args = (True,))
 
         self.append_reply_hook(busNUT.Bus().hook)
         self.append_reply_hook(DayOfTheWeek.hook)
         self.append_reply_hook(DateTimeHooks.hook)
-        self.append_reply_hook(atnd.hook)
+        #self.append_reply_hook(atnd.hook)
         self.append_reply_hook(Unya().hook)
         self.append_reply_hook(unicodehook.hook)
 
-        self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator.translator)
-        self.append_reply_hook(self.wolfram.hook)
-        self.append_reply_hook(reflexa.hook)
+        #self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator.translator)
+        #self.append_reply_hook(self.wolfram.hook)
+        #self.append_reply_hook(reflexa.hook)
         self.append_reply_hook(JO_RI_bot.typical_response)
         self.append_reply_hook(friendship.breaker)
         self.append_reply_hook(fizzbuzz.hook)

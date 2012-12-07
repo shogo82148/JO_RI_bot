@@ -1,8 +1,9 @@
 
 /config.py
+/ipadic
 *.pyc
 *~
 *.sqlite3
-*.db
+*.db.*
 *.tsv
 *.out

@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-import MeCab
+from igo.Tagger import Tagger
 import config
-import anydbm
+import mydumbdbm as anydbm
 import re
 import sys
 
-class Node(object):
-    def __init__(self, node):
-        a = node.split('\t')
-        self.surface, self.feature = a
+
+class EOS(object):
+    def __init__(self):
+        self.surface = u''
+        self.feature = u'BOS/EOS,*,*'
 
 def Parse(s, tagger = None):
-    node = tagger.parse(s.encode('utf-8'))
-    result = [Node(n) for n in node.split('\n')[:-2]]
-    return [Node(DBManager.BOS)] + result + [Node(DBManager.EOS)]
+    result = tagger.parse(s)
+    return [EOS()] + result + [EOS()]
 
 def Bigram(itr):
     itr = iter(itr)
@@ -32,7 +32,7 @@ class DBManager(object):
     bigram_columns = ['count', 'following']
 
     def __init__(self, mecab=None, dbfile='bigram.db', replydbfile='reply.db'):
-        self._mecab = mecab or MeCab.Tagger()
+        self._mecab = mecab or Tagger('ipadic')
         self.db = anydbm.open(dbfile, 'c')
         self.replydb = anydbm.open(replydbfile, 'c')
         self._closed = False
@@ -70,8 +70,8 @@ class DBManager(object):
 
     def node2word(self, node):
         features = node.feature.split(',')[0:3]
-        text = "%s\t%s,%s,%s" % tuple([node.surface]+features)
-        return text.decode('utf-8')
+        text = u"%s\t%s,%s,%s" % tuple([node.surface]+features)
+        return text
 
     def add_text(self, text, reply):
         """ テキストをデータベースに登録する """

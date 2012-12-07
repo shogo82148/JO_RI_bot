@@ -12,7 +12,9 @@ import datetime
 import crondaemon
 import logging
 import logging.handlers
-from multiprocessing import Process, Lock, Queue
+from Queue import Queue
+from threading import Lock
+from threading import Thread as Process
 import traceback
 from TwitterStream import StreamProcess
 

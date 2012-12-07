@@ -5,7 +5,7 @@
 特定ユーザのつぶやきを真似するボットさん
 """
 
-import MeCab
+from igo.Tagger import Tagger
 import logging
 import tweepy
 from dbmanager import DBManager
@@ -16,7 +16,7 @@ logger = logging.getLogger("Bot.Clone")
 class CloneBot(object):
     def __init__(self, crawl_user, mecab=None, log_file='crawl.tsv', db_file='bigram.db', crawler_api=None):
         self._crawl_user = crawl_user
-        self._mecab = mecab or MeCab.Tagger()
+        self._mecab = mecab or Tagger('ipadic')
         self._log_file = log_file
         self._db_file = db_file
         self._crawler_api = crawler_api

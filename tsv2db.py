@@ -1,8 +1,18 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
+import os
 import sys
 import codecs
+
+try:
+    os.chdir('/sdcard/sl4a/scripts/JO_RI_bot/')
+except Exception, e:
+    pass
+
+sys.path.append('./croniter/')
+sys.path.append('./python-dateutil/')
+sys.path.append('./igo-python/')
 
 from TwitterBot.modules.CloneBot.dbmanager import DBManager
 sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
@@ -10,7 +20,7 @@ sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
 
 def main():
     db = DBManager()
-    for line in sys.stdin:
+    for line in codecs.open('crawl.tsv', 'r', 'utf-8'):
         line = line.strip()
         status = line.split('\t')
         if len(status) < 2:
