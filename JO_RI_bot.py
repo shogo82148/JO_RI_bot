@@ -24,6 +24,7 @@ from TwitterBot.modules.Translator import Translator
 from TwitterBot.modules import DayOfTheWeek
 from TwitterBot.modules.wolframalpha import WolframAlpha
 from TwitterBot.modules import ukeru
+from TwitterBot.modules import tellme
 import TwitterBot.modules.DateTimeHooks as DateTimeHooks
 import tweepy
 import TwitterBot.modules.atnd as atnd
@@ -134,6 +135,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_reply_hook(JO_RI_bot.typical_response)
         self.append_reply_hook(friendship.breaker)
         self.append_reply_hook(fizzbuzz.hook)
+        self.append_reply_hook(tellme.hook)
 
         crawler_auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
         crawler_auth.set_access_token(config.CRAWLER_ACCESS_KEY, config.CRAWLER_ACCESS_SECRET)
