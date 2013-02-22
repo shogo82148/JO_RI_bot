@@ -92,6 +92,8 @@ class JO_RI_bot(TwitterBot.BaseBot):
 
         self.translator = Translator(config.BING_APP_KEY)
         self.append_reply_hook(self.translator.hook)
+        self.append_cron('0 0 * * *', self.update_configure)
+        self.update_configure()
 
         dokusho = Dokusho(
             config.CRAWL_USER,

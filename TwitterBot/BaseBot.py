@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 
 import tweepy
+import tweepy.binder
 import tweepywrap
 import time
 import httplib
@@ -156,6 +157,7 @@ class BaseBot(tweepywrap.StreamListener):
         auth.set_access_token(self._access_key, self._access_secret)
         api = tweepy.API(auth, retry_count=10, retry_delay=1)
         self.api = api
+        self.configure = {}
 
         #アカウント設定の読み込み
         self._name = self.api.me().screen_name
@@ -372,3 +374,12 @@ class BaseBot(tweepywrap.StreamListener):
             text = text[0:140]
         return self.update_status(text,
                            in_reply_to_status_id=in_reply_to.id)
+
+    def update_configure(self):
+        bind_api = tweepy.binder.bind_api
+        get_configure = bind_api(
+            path = '/help/configuration.json',
+            payload_type = 'json')
+        self.configure = get_configure(self.api)
+        print self.configure
+
