@@ -158,6 +158,7 @@ class BaseBot(tweepywrap.StreamListener):
         api = tweepy.API(auth, retry_count=10, retry_delay=1)
         self.api = api
         self.configure = {}
+        self.tweet_length = 140
 
         #アカウント設定の読み込み
         self._name = self.api.me().screen_name

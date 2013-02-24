@@ -152,6 +152,7 @@ class Dokusho(object):
         if not m:
             return False
 
+        short_url_length = bot.configure.get(u'short_url_length', 20)
         keyword = m.group(1).strip()
         item = self.get_comment(keyword)
         if not item:
@@ -164,22 +165,22 @@ class Dokusho(object):
             else:
                 text = u'%sは「%s」を読んだけどコメントは未投稿です。買って読んでみては？' % (
                     self._user_name, item['title'])
-            limit = 140 - len(text)
+            limit = bot.tweet_length - len(text)
             limit -= len('@' + status.author.screen_name + ' ')
-            if limit>=21:
+            if limit > short_url_length:
                 text += ' ' + item['links']['All Customer Reviews']
-                limit -= 21
-            if limit>=21:
+                limit -= short_url_length + 1
+            if limit > short_url_length:
                 text += ' %s/b/%s' % (_dokusho_base, item['isbn'])
-                limit -= 21
+                limit -= short_url_length + 1
             timestamp = u' [%s]' % bot.get_timestamp()
             if limit>len(timestamp):
                 text += timestamp
             bot.reply_to(text, status, cut=False)
         else:
             comment = item['comment']
-            limit = 140
-            limit -= 1 + 20 #For URL
+            limit = bot.tweet_length
+            limit -= 1 + short_url_length #For URL
             limit -= len('@' + status.author.screen_name + ' ')
             if len(comment)>limit:
                 comment = comment[0:limit-1] + u'…'

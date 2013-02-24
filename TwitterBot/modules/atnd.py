@@ -49,9 +49,10 @@ class SearchResult(object):
         if no>=len(self.result['events']):
             bot.reply_to(u'もうないよ [%s]' % bot.get_timestamp(), status)
             return
+        short_url_length = bot.configure.get(u'short_url_length', 20)
         event = self.result['events'][no]
-        limit = 140
-        limit -= 21 #for URL
+        limit = bot.tweet_length
+        limit -= short_url_length + 1 #for URL
         timestamp = ' [%s]' % bot.get_timestamp()
         limit -= len(timestamp)
 
@@ -77,7 +78,7 @@ class SearchResult(object):
     def update_detail(self, bot, status):
         no = self.no
         event = self.result['events'][no]
-        limit = 140
+        limit = bot.tweet_length
         timestamp = ' [%s]' % bot.get_timestamp()
         limit -= len(timestamp)
 

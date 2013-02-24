@@ -133,9 +133,10 @@ class Tweet(object):
             timestamp = " [%s]" % bot.get_timestamp()
             title = item['title']
 
-            limit = 140 - len('@%s ' % status.author.screen_name)
+            short_url_length = bot.configure.get(u'short_url_length', 20)
+            limit = bot.tweet_length - len('@%s ' % status.author.screen_name)
             limit -= len(msg)
-            limit -= 21 # For space and url
+            limit -= short_url_length + 1 # For space and url
             limit -= len(timestamp)
             if len(title)>limit:
                 title = title[0:limit-1] + u'…'
