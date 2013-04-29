@@ -114,6 +114,9 @@ class JO_RI_bot(TwitterBot.BaseBot):
             config.AMAZON_SECRET_ACCESS_KEY,
             config.AMAZON_ASSOCIATE_TAG)
         self.append_reply_hook(amazon.hook)
+        self.append_cron('00 08 * * *',
+                         amazon.cron,
+                         name = u'Amazon Notification')
 
         logger.info(u'init gakushoku...')
         self._gakushoku = gakushoku.GakuShoku(

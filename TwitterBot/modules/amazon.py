@@ -18,6 +18,7 @@ import random
 import itertools
 import logging
 import unicodedata
+import sqlite3
 
 logger = logging.getLogger("Bot.amazon")
 namespaces={'ns':"http://webservices.amazon.com/AWSECommerceService/2011-08-01"}
@@ -263,6 +264,28 @@ class Amazon(object):
         buy = u'(?:(?:買う|購入する?|iyhする?|買収する?)べき|(?:買った|購入した|iyhした|買収した)ほうがいい|欲しい|ほしー)'
         self._re_hook = re.compile(ur'^%s(:?(?:の|な)%s)?(?:って|を|が)?%s' % (keyword, indexes, buy), re.I)
 
+        tellme = u'(?P<keyword>.*)の新刊が?[出で]たら(?:(?:教|おし)えて|(?:教|おし)えろ|[知し]らせて|[知し]らせろ)'
+        self._re_tellme = re.compile(tellme)
+        self._db_file = "amazon_tellme.sqlite"
+
+        con = None
+        try:
+            con = sqlite3.connect(self._db_file)
+            con.execute(
+                u'create table if not exists user_keywords('
+                u'user_id varchar(100),'
+                u'status_id varchar(100),'
+                u'keyword varchar(100)'
+                u');')
+            con.execute(
+                u'create table if not exists keywords('
+                u'keyword varchar(100),'
+                u'isbn varchar(100)'
+                u');')
+        finally:
+            if not con:
+                con.close()
+
     def search(self, keywords, page=1, index='All'):
         res = self._amazon.ItemSearch(
             Keywords=keywords,
@@ -272,20 +295,103 @@ class Amazon(object):
         xml = res.decode('utf-8')
         return Result(xml)
 
+    def addKeyword(self, user, status, keyword):
+        logger.debug(u'%s added keyword "%s"', user, keyword)
+        con = None
+        try:
+            con = sqlite3.connect(self._db_file)
+            rows = list(con.execute(u'select * from user_keywords where user_id=? and keyword=?;', (user, keyword)))
+            if len(rows) != 0:
+                return True
+            result = self.searchNewBooks(keyword)
+            if len(result) == 0:
+                isbn = ''
+            else:
+                isbn = result[0]['isbn']
+            con.execute(u'insert into user_keywords(user_id, status_id, keyword) values(?,?,?);', (user, str(status.id), keyword))
+            con.execute(u'insert into keywords(keyword, isbn) values(?,?);', (keyword, isbn))
+            con.commit()
+        finally:
+            if not con:
+                con.close()
+
+    def getKeywords(self, user):
+        con = None
+        try:
+            con = sqlite3.connect(self._db_file)
+            keywords = [t[0] for t in con.execute(u'select keyword from user_keywords where user_id=?;', user)]
+        finally:
+            if not con:
+                con.close()
+        return keywords
+
     _re_mention = re.compile(ur'@\w+')
     def hook(self, bot, status):
         text = self._re_mention.sub('', status.text)
         text = unicodedata.normalize('NFKC', text)
         text = text.lower()
         m = self._re_hook.search(text)
-        if not m:
-            return False
+        if m:
+            keyword = m.group('keyword').strip()
+            index = Amazon.searchIndexDic.get(m.group('index') or 'すべて', 'All')
+            logger.debug('Keyword: %s, SearchIndex: %s', keyword, index)
+            tweet = Tweet(self.search(keyword, index=index), amazon=self._amazon)
+            tweet.reply_to(bot, status)
+            return True
 
-        keyword = m.group('keyword').strip()
-        index = Amazon.searchIndexDic.get(m.group('index') or 'すべて', 'All')
-        logger.debug('Keyword: %s, SearchIndex: %s', keyword, index)
-        tweet = Tweet(self.search(keyword, index=index), amazon=self._amazon)
-        tweet.reply_to(bot, status)
-        return True
+        m = self._re_tellme.search(text)
+        if m:
+            user = str(status.author.id)
+            keyword = m.group('keyword').strip()
+            self.addKeyword(user, status, keyword)
+            bot.reply_to(u'おｋ。「{0}」の新刊が出たらお知らせします。 [{1}]'.format(keyword, bot.get_timestamp()), status)
+            return True
 
+        if u'新刊' in text and (u'通知' in text or u'知らせ' in text):
+            if u'一覧' in text:
+                user = str(status.author.id)
+                keywords = self.getKeywords(user)
+                if keywords:
+                    bot.reply_to(u'「{0}」の新刊が出たらお知らせします。 [{1}]'.format(u'」「'.join(keywords), bot.get_timestamp()), status)
+                else:
+                    bot.reply_to(u'新刊通知機能は無効です。「hogehogeの新刊出たら教えて」とリプライをください。 [{0}]'.format(bot.get_timestamp()), status)
+            else:
+                bot.reply_to(u'「hogehogeの新刊出たら教えて」とリプライをください。 [{0}]'.format(bot.get_timestamp()), status)
+            return True
 
+        return False
+
+    def searchNewBooks(self, keywords):
+        res = self._amazon.ItemSearch(
+            Keywords=keywords,
+            SearchIndex='Books',
+            ItemPage='1',
+            ResponseGroup='Small',
+            Sort='daterank')
+        xml = res.decode('utf-8')
+        return Result(xml)
+
+    def cron(self, bot):
+        logger.debug(u'checking update of books...')
+        con = None
+        try:
+            con = sqlite3.connect(self._db_file)
+            for keyword, isbn in con.execute(u'select keyword, isbn from keywords;'):
+                logger.debug(u'checking "%s"...', keyword)
+                result = self.searchNewBooks(keyword)
+                if len(result) == 0 or result[0]['isbn'] == isbn:
+                    continue
+                logger.debug(u'found new book: %s', isbn)
+                for user_id, status_id in con.execute(u'select user_id, status_id form user_keywords where keyword=?', keyword):
+                    try:
+                        user = bot.api.get_user(user_id)
+                        status = bot.api.get_status(status_id)
+                        tweet = Tweet(self.search(keyword, index=index), amazon=self._amazon)
+                        tweet.reply_to(bot, status)
+                    except:
+                        pass
+                con.execute(u'update keyword set isbn=? where keyword=?', (result[0]['isbn'], keyword))
+                con.commit()
+        finally:
+            if not con:
+                con.close()
