@@ -381,16 +381,16 @@ class Amazon(object):
                 result = self.searchNewBooks(keyword)
                 if len(result) == 0 or result[0]['isbn'] == isbn:
                     continue
-                logger.debug(u'found new book: %s', isbn)
-                for user_id, status_id in con.execute(u'select user_id, status_id form user_keywords where keyword=?', keyword):
+                logger.debug(u'found new book: %s', result[0]['isbn'])
+                for user_id, status_id in con.execute(u'select user_id, status_id from user_keywords where keyword=?', (keyword, )):
                     try:
                         user = bot.api.get_user(user_id)
                         status = bot.api.get_status(status_id)
-                        tweet = Tweet(self.search(keyword, index=index), amazon=self._amazon)
+                        tweet = Tweet(result, amazon=self._amazon)
                         tweet.reply_to(bot, status)
                     except:
                         pass
-                con.execute(u'update keyword set isbn=? where keyword=?', (result[0]['isbn'], keyword))
+                con.execute(u'update keywords set isbn=? where keyword=?', (result[0]['isbn'], keyword))
                 con.commit()
         finally:
             if not con:
