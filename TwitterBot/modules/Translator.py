@@ -18,6 +18,7 @@ class Translator(object):
     _re_detect = re.compile(ur'^(.*?)(って|は)?何語')
 
     def __init__(self, appId, lang_from=None, lang_to='ja'):
+        logger.info('init translator')
         self.translator = LibTranslator(appId, lang_from, lang_to)
 
         lang = '|'.join(self.translator.get_lang_list())

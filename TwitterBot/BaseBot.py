@@ -183,7 +183,9 @@ class BaseBot(tweepywrap.StreamListener):
         self._cron.start(async=True)
 
         # メインループ
+        logger.info(u'Initializing bot...')
         self.on_start()
+        logger.info(u'Messeage loop starting...')
         while streaming_process.is_alive():
             try:
                 data_type, data = self._queue.get()
