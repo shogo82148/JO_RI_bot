@@ -34,7 +34,7 @@ class GakuShoku(object):
             return None
         return records[0].content
 
-    _re_menu = re.compile(u'[メめﾒ][ニにﾆ][ュゅｭ]|menu|[昼晩夕]食|めし|ごはん|飯|[abc]定|学食|定食'
+    _re_menu = re.compile(u'[メめﾒ][ニにﾆ][ュゅｭ]|menu|[昼晩夕]食|めし|ごはん|飯|[abcs]定|学食|定食'
                           u'|(腹|なか|はら).*(減った|へった|すいた|空いた)'
                           u'|[フふﾌ][ンんﾝ](ガ|が|ｶﾞ)'
                           u'|はらへ')
@@ -90,6 +90,8 @@ class GakuShoku(object):
             return self._teishoku(menu, is_dinner, u'b')
         elif query.find(u'c')>=0:
             return self._teishoku(menu, is_dinner, u'c')
+        elif query.find(u's')>=0:
+            return self._teishoku(menu, is_dinner, u's')
         elif query.find(u'定食')>=0:
             return self._teishoku2(menu, is_dinner)
         elif self._re_set_menu.search(query):
@@ -160,7 +162,7 @@ class GakuShoku(object):
         selections = []
 
         #第一食堂定食
-        for dish_type in [u'a', u'b', u'c', u'週替わりa']:
+        for dish_type in [u'a', u'b', u'c', u's', u'週替わりa']:
             dish1 = menu.get(dish_time + dish_type + u'定食1', None)
             dish2 = menu.get(dish_time + dish_type + u'定食2', None)
             if dish1:
