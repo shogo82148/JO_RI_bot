@@ -183,7 +183,9 @@ class BaseBot(tweepywrap.StreamListener):
         self._cron.start(async=True)
 
         # メインループ
+        logger.info(u'Initializing bot...')
         self.on_start()
+        logger.info(u'Messeage loop starting...')
         while streaming_process.is_alive():
             try:
                 data_type, data = self._queue.get()
@@ -377,10 +379,14 @@ class BaseBot(tweepywrap.StreamListener):
                            in_reply_to_status_id=in_reply_to.id)
 
     def update_configure(self):
-        bind_api = tweepy.binder.bind_api
-        get_configure = bind_api(
-            path = '/help/configuration.json',
-            payload_type = 'json')
-        self.configure = get_configure(self.api)
-        print self.configure
+        try:
+            bind_api = tweepy.binder.bind_api
+            get_configure = bind_api(
+                path = '/help/configuration.json',
+                payload_type = 'json')
+            self.configure = get_configure(self.api)
+            print self.configure
+        except AttributeError:
+            # 多分APIがMockなので無視
+            pass
 

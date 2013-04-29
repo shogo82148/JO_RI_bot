@@ -62,6 +62,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
                                         config.ACCESS_SECRET)
 
     def on_start(self):
+        logger.info(u'init root commands...')
         self.append_reply_hook(AdminFunctions.shutdown_hook(
                 allowed_users = config.ADMIN_USER,
                 command = set([u'バルス', u'シャットダウン', u'shutdown', u'halt', u':q!', u'c-x c-c'])),
@@ -92,9 +93,11 @@ class JO_RI_bot(TwitterBot.BaseBot):
 
         self.translator = Translator(config.BING_APP_KEY)
         self.append_reply_hook(self.translator.hook)
+
         self.append_cron('0 0 * * *', self.update_configure)
         self.update_configure()
 
+        logger.info(u'init dokusho...')
         dokusho = Dokusho(
             config.CRAWL_USER,
             config.DOKUSHO_USER,
@@ -103,6 +106,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_reply_hook(dokusho.hook)
         self.append_cron('0 0 * * mon', dokusho.crawl)
 
+        logger.info(u'init amazon...')
         amazon = Amazon(
             config.CRAWL_USER,
             config.DOKUSHO_USER,
@@ -110,7 +114,11 @@ class JO_RI_bot(TwitterBot.BaseBot):
             config.AMAZON_SECRET_ACCESS_KEY,
             config.AMAZON_ASSOCIATE_TAG)
         self.append_reply_hook(amazon.hook)
+        self.append_cron('00 08 * * *',
+                         amazon.cron,
+                         name = u'Amazon Notification')
 
+        logger.info(u'init gakushoku...')
         self._gakushoku = gakushoku.GakuShoku(
                 config.MENU_EMAIL, config.MENU_PASSWORD,
                 config.MENU_ID, config.MENU_SHEET)
@@ -131,6 +139,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_reply_hook(Unya().hook)
         self.append_reply_hook(unicodehook.hook)
 
+        logger.info(u'init WalframAplha...')
         self.wolfram = WolframAlpha(config.WOLFRAM_ALPHA_APP_ID, self.translator.translator)
         self.append_reply_hook(self.wolfram.hook)
         self.append_reply_hook(reflexa.hook)
@@ -139,6 +148,7 @@ class JO_RI_bot(TwitterBot.BaseBot):
         self.append_reply_hook(fizzbuzz.hook)
         self.append_reply_hook(tellme.hook)
 
+        logger.info(u'init crawler...')
         crawler_auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
         crawler_auth.set_access_token(config.CRAWLER_ACCESS_KEY, config.CRAWLER_ACCESS_SECRET)
         crawler_api = tweepy.API(crawler_auth, retry_count=10, retry_delay=1)
