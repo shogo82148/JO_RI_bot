@@ -266,7 +266,7 @@ class Amazon(object):
 
         tellme = u'(?P<keyword>.*)の新刊が?[出で]たら(?:(?:教|おし)えて|(?:教|おし)えろ|[知し]らせて|[知し]らせろ)'
         self._re_tellme = re.compile(tellme)
-        self._db_file = "amazon_tellme.sqlite"
+        self._db_file = "amazon_tellme.sqlite3"
 
         con = None
         try:
