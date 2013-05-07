@@ -319,7 +319,7 @@ class Amazon(object):
         con = None
         try:
             con = sqlite3.connect(self._db_file)
-            keywords = [t[0] for t in con.execute(u'select keyword from user_keywords where user_id=?;', user)]
+            keywords = [t[0] for t in con.execute(u'select keyword from user_keywords where user_id=?;', (user,) )]
         finally:
             if not con:
                 con.close()
