@@ -139,7 +139,7 @@ class Translator(object):
     def translate(self, text, lang_from=None, lang_to=None):
         lang_from = lang_from or self.lang_from
         lang_to = lang_to or self.lang_to
-        if lang_from=='grangish' or self.grongish.detect(text):
+        if lang_from=='grongish' or self.grongish.detect(text):
             text = self.grongish.grtranslate(text)
         if lang_to=='ikamusume':
             if lang_from!='ja':
