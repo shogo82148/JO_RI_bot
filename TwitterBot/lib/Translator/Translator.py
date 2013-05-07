@@ -13,6 +13,7 @@ import Grongish
 import Lou
 import logging
 import Ika
+import Enteisla
 
 logger = logging.getLogger("Bot.Trans")
 
@@ -63,6 +64,7 @@ class Translator(object):
         u'ルー': 'lou',
         u'オンドゥルー': 'ondulishlou',
         u'グロンギ': 'grongish',
+        u'エンテイスラ': 'enteisla',
         }
 
     def __init__(self, appId, lang_from=None, lang_to='ja'):
@@ -73,6 +75,7 @@ class Translator(object):
         self.misakurago = Misakurago.Misakurago()
         self.ondulish = Ondulish.Ondulish()
         self.grongish = Grongish.Grongish(dic='dic/Grongish')
+        self.enteisla = Enteisla.Enteisla()
 
         #言語コード対名前辞書を作成
         inverse_lang_dict = {}
@@ -124,6 +127,8 @@ class Translator(object):
             return 'ondulish'
         if self.grongish.detect(text):
             return 'grongish'
+        if self.enteisla.detect(text):
+            return 'enteisla'
         arg = {}
         arg['appId'] = self.appId
         if isinstance(text, unicode):
@@ -141,6 +146,8 @@ class Translator(object):
         lang_to = lang_to or self.lang_to
         if lang_from=='grongish' or self.grongish.detect(text):
             text = self.grongish.grtranslate(text)
+        elif lang_from=='enteisla' or self.enteisla.detect(text):
+            text = self.translate(text)
         if lang_to=='ikamusume':
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
@@ -166,6 +173,10 @@ class Translator(object):
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
             return self.grongish.translate(text)
+        elif lang_to=='enteisla':
+            if lang_from!='en':
+                text = self._translateBing(text, lang_from, 'en')
+            return self.enteisla.translate(text)
         else:
             return self._translateBing(text, lang_from, lang_to)
 
