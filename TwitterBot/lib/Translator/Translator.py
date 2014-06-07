@@ -14,6 +14,7 @@ import Lou
 import logging
 import Ika
 import Enteisla
+import Sizuka
 
 logger = logging.getLogger("Bot.Trans")
 
@@ -65,6 +66,7 @@ class Translator(object):
         u'オンドゥルー': 'ondulishlou',
         u'グロンギ': 'grongish',
         u'エンテイスラ': 'enteisla',
+        u'しずかったー': 'sizuka',
         }
 
     def __init__(self, appId, lang_from=None, lang_to='ja'):
@@ -76,6 +78,7 @@ class Translator(object):
         self.ondulish = Ondulish.Ondulish()
         self.grongish = Grongish.Grongish(dic='dic/Grongish')
         self.enteisla = Enteisla.Enteisla()
+        self.sizuka = Sizuka.Sizuka()
 
         #言語コード対名前辞書を作成
         inverse_lang_dict = {}
@@ -119,6 +122,8 @@ class Translator(object):
         return text
 
     def detect(self, text):
+        if self.sizuka.detect(text):
+            return 'sizuka'
         if self.ika.detect(text):
             return 'ikamusume'
         if self.misakurago.detect(text):
@@ -144,10 +149,16 @@ class Translator(object):
     def translate(self, text, lang_from=None, lang_to=None):
         lang_from = lang_from or self.lang_from
         lang_to = lang_to or self.lang_to
-        if lang_from=='grongish' or self.grongish.detect(text):
+        if lang_from=='sizuka' or self.sizuka.detect(text):
+            text = self.sizuka.antitranslate(text)
+            lang_from = 'ja'
+        elif lang_from=='grongish' or self.grongish.detect(text):
             text = self.grongish.grtranslate(text)
+            lang_from = 'ja'
         elif lang_from=='enteisla' or self.enteisla.detect(text):
             text = self.translate(text)
+            lang_from = 'ja'
+
         if lang_to=='ikamusume':
             if lang_from!='ja':
                 text = self._translateBing(text, lang_from, 'ja')
@@ -177,6 +188,10 @@ class Translator(object):
             if lang_from!='en':
                 text = self._translateBing(text, lang_from, 'en')
             return self.enteisla.translate(text)
+        elif lang_to == 'sizuka':
+            if lang_from != 'ja':
+                text = self._translateBing(text, lang_from, 'ja')
+            return self.sizuka.translate(text)
         else:
             return self._translateBing(text, lang_from, lang_to)
 

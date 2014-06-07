@@ -1,0 +1,7 @@
+cost-factor = 800
+bos-feature = BOS/EOS
+output-format-type=sizukatter
+
+node-format-sizukatter = %H
+unk-format-sizukatter = %M
+eos-format-sizukatter = \n

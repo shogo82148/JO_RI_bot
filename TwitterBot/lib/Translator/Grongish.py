@@ -157,6 +157,8 @@ class Grongish(object):
         return text
 
     def detect(self, text):
+        if u'バルス' in text:
+            return False
         d = set(u'ガギグゲゴザジズゼゾダヂヅデドバビブベボラリルレロサシスセソマミムメモパジャュョン')
         all_length = len(text)
         d_length = len([ch for ch in text if ch in d])
