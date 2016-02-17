@@ -118,19 +118,19 @@ class JO_RI_bot(TwitterBot.BaseBot):
                          amazon.cron,
                          name = u'Amazon Notification')
 
-        logger.info(u'init gakushoku...')
-        self._gakushoku = gakushoku.GakuShoku(
-                config.MENU_EMAIL, config.MENU_PASSWORD,
-                config.MENU_ID, config.MENU_SHEET)
-        self.append_reply_hook(self._gakushoku.hook)
-        self.append_cron('00 11 * * *',
-                         self._gakushoku.tweet_menu,
-                         name = u'Gakushoku Menu(noon)',
-                         args = (False,))
-        self.append_cron('00 16 * * *',
-                         self._gakushoku.tweet_menu,
-                         name = u'Gakushoku Menu(afternoon)',
-                         args = (True,))
+#        logger.info(u'init gakushoku...')
+#        self._gakushoku = gakushoku.GakuShoku(
+#                config.MENU_EMAIL, config.MENU_PASSWORD,
+#                config.MENU_ID, config.MENU_SHEET)
+#        self.append_reply_hook(self._gakushoku.hook)
+#        self.append_cron('00 11 * * *',
+#                         self._gakushoku.tweet_menu,
+#                         name = u'Gakushoku Menu(noon)',
+#                         args = (False,))
+#        self.append_cron('00 16 * * *',
+#                         self._gakushoku.tweet_menu,
+#                         name = u'Gakushoku Menu(afternoon)',
+#                         args = (True,))
 
         self.append_reply_hook(busNUT.Bus().hook)
         self.append_reply_hook(DayOfTheWeek.hook)
