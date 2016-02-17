@@ -67,6 +67,7 @@ class Translator(object):
         u'グロンギ': 'grongish',
         u'エンテイスラ': 'enteisla',
         u'しずかったー': 'sizuka',
+        u'折り返し翻': 'orikaeshi',
         }
 
     def __init__(self, appId, lang_from=None, lang_to='ja'):
@@ -192,6 +193,8 @@ class Translator(object):
             if lang_from != 'ja':
                 text = self._translateBing(text, lang_from, 'ja')
             return self.sizuka.translate(text)
+        elif lang_to == 'orikaeshi':
+            return self._translateBing(self._translateBing(self._translateBing(self._translateBing(text, 'ja', 'en'), 'en', 'nl'), 'nl', 'it'), 'it', 'ja')
         else:
             return self._translateBing(text, lang_from, lang_to)
 
